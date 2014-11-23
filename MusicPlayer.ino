@@ -1,4 +1,3 @@
-
 #include <Audio.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -10,9 +9,6 @@ AudioConnection patchCordRight(playWave, 0, i2s1, 0);
 AudioConnection patchCordLeft(playWave, 1, i2s1, 1);
 AudioControlSGTL5000 sgtl5000;
 
-static const char *soundFiles[] = { "CHUGDUB.WAV", "KEMFR10.WAV", "MINTY.WAV" };
-int soundFilesCount = 3;
-int currentSoundFile = -1;
 long startPlay = 0;
 float currentVolume = 0.25;
 float maxVolume = 0.6;
@@ -26,34 +22,23 @@ void audioSetup() {
     sgtl5000.volume(currentVolume);
 }
 
-void playNextFile() {
-    currentSoundFile++;
-    currentSoundFile = currentSoundFile % soundFilesCount;
-    Serial.print("current sound file index is ");
-    Serial.println(currentSoundFile);
-    playFile(soundFiles[currentSoundFile]);
-}
-
 void playFile(const char *filename) {
     stop();
 
-    char filePath[30];
-    sprintf(filePath, "MUSIC/%s", filename);
-
-    if (SD.exists(filePath)) {
+    if (SD.exists((char *) filename)) {
         Serial.print("Playing existing file: ");
-        Serial.print(filePath);
+        Serial.print(filename);
         Serial.print(" at volume ");
         Serial.println(currentVolume);
     } else {
         Serial.print("File not found: ");
-        Serial.println(filePath);
+        Serial.println(filename);
         return;
     }
 
     // Start playing the file.  This sketch continues to
     // run while the file plays.
-    playWave.play(filePath);
+    playWave.play(filename);
     startPlay = millis();
     // A brief delay for the library read WAV info
     delay(5);

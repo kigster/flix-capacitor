@@ -11,40 +11,36 @@
 #include <SPI.h>
 #include <SD.h>
 #include <ILI9341_t3.h>
+#include "FlixCapacitor.h"
 
 #define TFT_DC  20
 #define TFT_CS  21
 #define SD_CS   10
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
-typedef void (*timerCallback)(void);
-
-typedef struct periodicCallStruct {
-    uint16_t frequencyMs;
-    uint32_t lastCallMs;
-    timerCallback callback;
-} periodicCall;
-
 periodicCall ImageLoad = { 6000, 0, nextImage };
+periodicCall TrackSwitch= { 120000, 0, nextTrack};
 periodicCall VolumeAdjust = { 50, 0, adjustVolume };
 periodicCall RamCheck = { 3000, 0, reportAvailableRAM };
-periodicCall TrackSwitch= { 15000, 0, playNextFile};
 
 periodicCall timers[] = { ImageLoad, VolumeAdjust, RamCheck, TrackSwitch };
 periodicCall *executingTimer;
 
-static const char *images[] = { "IMG_1940.bmp", "IMG_2196.bmp", "IMG_2271.bmp", "IMG_2297.bmp", "IMG_2475.bmp", "IMG_2483.bmp" };
-uint8_t currentImageIndex = -1, totalImages = 6;
-long lastMillis = 0;
+FileList *photos, *tracks;
+char trackPathName[FAT32_FILENAME_LENGTH * 2];
+char photoPathName[FAT32_FILENAME_LENGTH * 2];
 
-uint8_t pinVolume = 15;
-char stringBuffer[20];
 Sd2Card card;
 SdVolume volume;
 SdFile root;
 File bmpFile;
+
+long lastMillis = 0;
 bool ledOn = false;
 bool sdCardInitialized = false;
+uint8_t pinVolume = 15;
+char stringBuffer[20];
+
 
 void reportAvailableRAM() {
     Serial.print("Free HEAP RAM is: ");
@@ -52,21 +48,43 @@ void reportAvailableRAM() {
     Serial.println("Kb");
 }
 
-void nextImage() {
-    char imageName[20];
 
+void nextTrack() {
     if (sdCardInitialized) {
-        currentImageIndex++;
-        currentImageIndex = currentImageIndex % totalImages;
-        sprintf(imageName, "PHOTOS/%s", images[currentImageIndex]);
-        Serial.print("Showing image ");
-        Serial.println(imageName);
-        bmpDraw(imageName, 0, 0);
+        nextFileInList(tracks, trackPathName);
+        Serial.print("Starting to play next track "); Serial.println(trackPathName);
+        playFile(trackPathName);
     } else {
-        Serial.println("SD Card not initialized, can't play image");
+        Serial.println("SD Card not initialized, can't play track");
+        readSDCard();
     }
 }
 
+void nextImage() {
+    if (sdCardInitialized) {
+        nextFileInList(photos, photoPathName);
+        Serial.print("Starting to play next photo"); Serial.println(photoPathName);
+        bmpDraw(photoPathName, 0, 0);
+    } else {
+        Serial.println("SD Card not initialized, can't play image");
+        readSDCard();
+    }
+}
+
+void readSDCard() {
+    sdCardInitialized = initSDCard();
+    if (sdCardInitialized) {
+        photos = findFilesMatchingExtension("/PHOTOS", ".BMP");
+        tracks = findFilesMatchingExtension("/MUSIC", ".WAV");
+
+        for (int i = 0; i < photos->size; i++) {
+            Serial.print("Found image file "); Serial.println(photos->files[i]);
+        }
+        for (int i = 0; i < tracks->size; i++) {
+            Serial.print("Found audio file "); Serial.println(tracks->files[i]);
+        }
+    }
+}
 /*__________________________________________________________________________________________*/
 
 void setup() {
@@ -84,7 +102,10 @@ void setup() {
     resetScreen();
 
     delay(3000);
-    sdCardInitialized = initSDCard();
+
+    nextImage();
+    nextTrack();
+
     adjustVolume();
 }
 
