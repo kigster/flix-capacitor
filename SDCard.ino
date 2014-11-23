@@ -8,6 +8,22 @@
  *  (c) 2014 All rights reserved, MIT License.
  */
 
+uint32_t FreeRamTeensy() { // for Teensy 3.0
+    uint32_t stackTop;
+    uint32_t heapTop;
+
+    // current position of the stack.
+    stackTop = (uint32_t) &stackTop;
+
+    // current position of heap.
+    void* hTop = malloc(1);
+    heapTop = (uint32_t) hTop;
+    free(hTop);
+
+    // The difference is the free, available ram.
+    return stackTop - heapTop;
+}
+
 void showDirectory() {
     Serial.println("\nFiles found on the card (name, date and size in bytes): ");
     root.openRoot(volume);

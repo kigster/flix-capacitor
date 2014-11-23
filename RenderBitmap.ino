@@ -1,5 +1,4 @@
-
-#define BUFFPIXEL 64
+#define BUFFPIXEL 32
 
 void resetScreen() {
     tft.fillScreen(tft.color565(0x20, 0x20, 0x20));
@@ -11,12 +10,7 @@ void resetScreen() {
     tft.setTextWrap(true);
 }
 
-
-//===========================================================
-// Try Draw using writeRect
-void bmpDrawWriteRect(char *filename, uint8_t x, uint16_t y) {
-
-    File bmpFile;
+void bmpDraw(char *filename, uint8_t x, uint16_t y) {
     int bmpWidth, bmpHeight;   // W+H in pixels
     uint8_t bmpDepth;              // Bit depth (currently must be 24)
     uint32_t bmpImageoffset;        // Start of image data in file
@@ -38,9 +32,9 @@ void bmpDrawWriteRect(char *filename, uint8_t x, uint16_t y) {
     Serial.print(F("Loading image '"));
     Serial.print(filename);
     Serial.println('\'');
-
+    bmpFile = SD.open(filename);
     // Open requested file on SD card
-    if ((bmpFile = SD.open(filename)) == NULL) {
+    if (!bmpFile) {
         Serial.print(F("File not found"));
         return;
     }
@@ -108,6 +102,7 @@ void bmpDrawWriteRect(char *filename, uint8_t x, uint16_t y) {
 
                     for (col = 0; col < w; col++) { // For each pixel...
                         // Time to read more pixel data?
+
                         if (buffidx >= sizeof(sdbuffer)) { // Indeed
                             bmpFile.read(sdbuffer, sizeof(sdbuffer));
                             buffidx = 0; // Set index to beginning
@@ -132,10 +127,6 @@ void bmpDrawWriteRect(char *filename, uint8_t x, uint16_t y) {
     if (!goodBmp)
         Serial.println(F("BMP format not recognized."));
 }
-
-// These read 16- and 32-bit types from the SD card file.
-// BMP data is stored little-endian, Arduino is little-endian too.
-// May need to reverse subscript order if porting elsewhere.
 
 uint16_t read16(File &f) {
     uint16_t result;

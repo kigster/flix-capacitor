@@ -11,24 +11,33 @@
 #include <SPI.h>
 #include <SD.h>
 #include <ILI9341_t3.h>
-#include <SimpleTimer.h>
-
 
 #define TFT_DC  20
 #define TFT_CS  21
 #define SD_CS   10
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
-//Sparkfun7SD_Serial display7s(8);
-//TeensyRTC rtc;
-SimpleTimer timer(1);
+typedef void (*timerCallback)(void);
+
+typedef struct periodicCallStruct {
+    uint16_t frequencyMs;
+    uint32_t lastCallMs;
+    timerCallback callback;
+} periodicCall;
+
+periodicCall ImageLoad = { 6000, 0, nextImage };
+periodicCall VolumeAdjust = { 50, 0, adjustVolume };
+periodicCall RamCheck = { 3000, 0, reportAvailableRAM };
+periodicCall TrackSwitch= { 15000, 0, playNextFile};
+
+periodicCall timers[] = { ImageLoad, VolumeAdjust, RamCheck, TrackSwitch };
+periodicCall *executingTimer;
 
 static const char *images[] = { "IMG_1940.bmp", "IMG_2196.bmp", "IMG_2271.bmp", "IMG_2297.bmp", "IMG_2475.bmp", "IMG_2483.bmp" };
-uint8_t currentImageIndex = -1, totalImages = sizeof(images) / sizeof(char *);
-char imageName[40];
+uint8_t currentImageIndex = -1, totalImages = 6;
 long lastMillis = 0;
 
-uint8_t pinLED = 13;
+uint8_t pinVolume = 15;
 char stringBuffer[20];
 Sd2Card card;
 SdVolume volume;
@@ -37,26 +46,25 @@ File bmpFile;
 bool ledOn = false;
 bool sdCardInitialized = false;
 
-void toggleLED(int timerId) {
-    ledOn = !ledOn;
-    digitalWrite(pinLED, ledOn ? HIGH : LOW);
+void reportAvailableRAM() {
+    Serial.print("Free HEAP RAM is: ");
+    Serial.print(1.0 * FreeRamTeensy() / 1014);
+    Serial.println("Kb");
 }
 
-void nextImage(int timerId) {
+void nextImage() {
+    char imageName[20];
+
     if (sdCardInitialized) {
         currentImageIndex++;
         currentImageIndex = currentImageIndex % totalImages;
-        sprintf(imageName, "PHOTOS/%s",images[currentImageIndex] );
-        showBitMaps(imageName);
+        sprintf(imageName, "PHOTOS/%s", images[currentImageIndex]);
+        Serial.print("Showing image ");
+        Serial.println(imageName);
+        bmpDraw(imageName, 0, 0);
+    } else {
+        Serial.println("SD Card not initialized, can't play image");
     }
-}
-
-void nextAudioFile(int timerId) {
-    playNextFile();
-}
-
-void showBitMaps(char * filename) {
-    bmpDrawWriteRect(filename, 0, 0);
 }
 
 /*__________________________________________________________________________________________*/
@@ -65,6 +73,7 @@ void setup() {
     SPI.setMOSI(7);
     SPI.setSCK(14);
     pinMode(10, OUTPUT);
+    pinMode(pinVolume, INPUT);
     delay(10);
     Serial.begin(9600);
 
@@ -74,18 +83,27 @@ void setup() {
     tft.setRotation(3);
     resetScreen();
 
-    delay(10);
+    delay(3000);
 
     sdCardInitialized = initSDCard();
-//    timer.setInterval(5000, nextImage);
-    timer.setInterval(1000, toggleLED);
-    timer.setInterval(20000, nextAudioFile);
-//    nextImage(0);
-    nextAudioFile(0);
+
+    adjustVolume();
 }
 
 void loop() {
+    for (uint8_t i = 0; i < sizeof(timers) / sizeof(periodicCall); i++ ) {
+        periodicCall *t = &timers[i];
+        if (t->frequencyMs == 0) {
+            continue;
+        }
+        uint32_t now = millis();
+        if (now - t->lastCallMs > t->frequencyMs) {
+            executingTimer = t;
+            t->callback();
+            executingTimer = NULL;
+            t->lastCallMs = now;
+        }
+    }
     delay(10);
-    timer.run();
 }
 

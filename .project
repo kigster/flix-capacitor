@@ -47,36 +47,6 @@
 			<locationURI>ArduinoPivateLibPath/SPI</locationURI>
 		</link>
 		<link>
-			<name>Libraries/SimpleTimer</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/SimpleTimer</locationURI>
-		</link>
-		<link>
-			<name>Libraries/SoftwareSerial</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/SoftwareSerial</locationURI>
-		</link>
-		<link>
-			<name>Libraries/Sparkfun7SD</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Sparkfun7SD</locationURI>
-		</link>
-		<link>
-			<name>Libraries/Sparkfun7SD-Serial</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Sparkfun7SD-Serial</locationURI>
-		</link>
-		<link>
-			<name>Libraries/TeensyRTC</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/TeensyRTC</locationURI>
-		</link>
-		<link>
-			<name>Libraries/Time</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Time</locationURI>
-		</link>
-		<link>
 			<name>Libraries/Wire</name>
 			<type>2</type>
 			<locationURI>ArduinoPivateLibPath/Wire</locationURI>
