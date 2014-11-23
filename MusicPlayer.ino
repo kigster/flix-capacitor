@@ -25,9 +25,6 @@ void audioSetup() {
     sgtl5000.enable();
     sgtl5000.volume(currentVolume);
 }
-void playNextFileCallback(int timerId) {
-    playNextFile();
-}
 
 void playNextFile() {
     currentSoundFile++;
@@ -60,11 +57,6 @@ void playFile(const char *filename) {
     startPlay = millis();
     // A brief delay for the library read WAV info
     delay(5);
-}
-
-void stopCallback(int timerId) {
-    Serial.println("Stopping current track playback...");
-    stop();
 }
 
 void stop() {

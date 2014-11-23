@@ -20,7 +20,6 @@
 							<tool id="it.baeyens.arduino.tool.sketch.compiler.cpp.820500627" name="Arduino C++ Compiler" superClass="it.baeyens.arduino.tool.sketch.compiler.cpp">
 								<option id="it.baeyens.arduino.compiler.cpp.sketch.option.incpath.1913616923" name="Include Paths (-I)" superClass="it.baeyens.arduino.compiler.cpp.sketch.option.incpath" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/arduino/core}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Time}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/ILI9341_t3}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SD}&quot;"/>
@@ -29,18 +28,12 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Audio/utility}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Wire}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Wire/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Sparkfun7SD}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Sparkfun7SD-Serial}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/TeensyRTC}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SoftwareSerial}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SimpleTimer}&quot;"/>
 								</option>
 								<inputType id="it.baeyens.arduino.compiler.cpp.sketch.input.1866399152" name="CPP source files" superClass="it.baeyens.arduino.compiler.cpp.sketch.input"/>
 							</tool>
 							<tool id="it.baeyens.arduino.tool.compiler.c.733372696" name="Arduino C Compiler" superClass="it.baeyens.arduino.tool.compiler.c">
 								<option id="it.baeyens.arduino.compiler.c.sketch.option.incpath.414907401" name="Include Paths (-I)" superClass="it.baeyens.arduino.compiler.c.sketch.option.incpath" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/arduino/core}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Time}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/ILI9341_t3}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SD}&quot;"/>
@@ -49,11 +42,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Audio/utility}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Wire}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Wire/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Sparkfun7SD}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/Sparkfun7SD-Serial}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/TeensyRTC}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SoftwareSerial}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/FlixCapacitor/Libraries/SimpleTimer}&quot;"/>
 								</option>
 								<inputType id="it.baeyens.arduino.compiler.c.sketch.input.1145434020" name="C Source Files" superClass="it.baeyens.arduino.compiler.c.sketch.input"/>
 							</tool>

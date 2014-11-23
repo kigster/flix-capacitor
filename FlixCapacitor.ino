@@ -1,5 +1,5 @@
 /*
- * KemBox
+ * FlixCapacitor
  *
  *  Created on: Nov 13, 2014
  *      Author: Konstantin Gredeskoul
@@ -84,9 +84,7 @@ void setup() {
     resetScreen();
 
     delay(3000);
-
     sdCardInitialized = initSDCard();
-
     adjustVolume();
 }
 
