@@ -15,9 +15,9 @@ typedef struct FileListStruct {
 typedef void (*timerCallback)(void);
 
 typedef struct periodicCallStruct {
-    uint16_t frequencyMs;
-    uint32_t lastCallMs;
+    uint32_t frequencyMs;
     timerCallback callback;
+    uint32_t lastCallMs;
 } periodicCall;
 
 #endif

@@ -12,18 +12,19 @@
 #include <SD.h>
 #include <ILI9341_t3.h>
 #include "FlixCapacitor.h"
-
+#include "Joystick.h"
 #define TFT_DC  20
 #define TFT_CS  21
 #define SD_CS   10
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
-periodicCall ImageLoad = { 6000, 0, nextImage };
-periodicCall TrackSwitch= { 120000, 0, nextTrack};
-periodicCall VolumeAdjust = { 50, 0, adjustVolume };
-periodicCall RamCheck = { 3000, 0, reportAvailableRAM };
+periodicCall ImageLoad = { 6000, nextImage };
+periodicCall TrackSwitch= { 120000, nextTrack};
+periodicCall VolumeAdjust = { 50, adjustVolume };
+periodicCall RamCheck = { 3000, reportAvailableRAM };
+periodicCall JoystickReport= { 1000, reportJoystick };
 
-periodicCall timers[] = { ImageLoad, VolumeAdjust, RamCheck, TrackSwitch };
+periodicCall timers[] = { ImageLoad, VolumeAdjust, RamCheck, TrackSwitch, JoystickReport };
 periodicCall *executingTimer;
 
 FileList *photos, *tracks;
@@ -41,6 +42,20 @@ bool sdCardInitialized = false;
 uint8_t pinVolume = 15;
 char stringBuffer[20];
 
+uint8_t pinX = A2;
+uint8_t pinY = A3;
+uint8_t pinButton = 8;
+
+Joystick joystick(pinX, pinY, pinButton);
+
+void reportJoystick() {
+    Serial.print("Joystick: X = ");
+    Serial.print(joystick.readX());
+    Serial.print(", Y = ");
+    Serial.print(joystick.readY());
+    Serial.print(", button is ");
+    joystick.buttonPressed() ? Serial.println("PRESSED") : Serial.println("Not Pressed");
+}
 
 void reportAvailableRAM() {
     Serial.print("Free HEAP RAM is: ");
@@ -74,8 +89,8 @@ void nextImage() {
 void readSDCard() {
     sdCardInitialized = initSDCard();
     if (sdCardInitialized) {
-        photos = findFilesMatchingExtension("/PHOTOS", ".BMP");
-        tracks = findFilesMatchingExtension("/MUSIC", ".WAV");
+        photos = findFilesMatchingExtension((char *)"/PHOTOS", (char *)".BMP");
+        tracks = findFilesMatchingExtension((char *)"/MUSIC", (char *)".WAV");
 
         for (int i = 0; i < photos->size; i++) {
             Serial.print("Found image file "); Serial.println(photos->files[i]);
@@ -96,6 +111,7 @@ void setup() {
     Serial.begin(9600);
 
     audioSetup();
+    joystick.begin();
 
     tft.begin();
     tft.setRotation(3);
