@@ -23,13 +23,13 @@
 #define SD_CS   10
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
-periodicCall ImageLoad      = {   6000, autoPlayPhotos,         true};
-periodicCall TrackSwitch    = { 120000, autoPlayMusic,          false};
-periodicCall VolumeAdjust   = {     50, adjustVolume,           true };
-periodicCall RamCheck       = {  10000, reportAvailableRAM,     true };
-periodicCall JoystickReport = {    200, readJoystick,           true };
+periodicCall ImageTimer    = {   6000, autoPlayPhotos,         true};
+periodicCall TrackTimer    = { 120000, autoPlayMusic,          false};
+periodicCall VolumeTimer   = {     50, adjustVolume,           true };
+periodicCall RamCheckTimer = {  10000, reportAvailableRAM,     true };
+periodicCall JoystickTimer = {    200, readJoystick,           true };
 
-periodicCall timers[] = { ImageLoad, VolumeAdjust, RamCheck, TrackSwitch, JoystickReport };
+periodicCall *timers[] = { &ImageTimer, &VolumeTimer, &RamCheckTimer, &TrackTimer, &JoystickTimer };
 periodicCall *executingTimer;
 
 FileList *photos, *tracks;
@@ -82,9 +82,11 @@ void readJoystick() {
             playTrack(PREVIOUS);
         } else if (joystick.readX() > 0.95) {
             lastJoystickAction = millis();
+            ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
             playImage(NEXT);
         } else if (joystick.readX() < 0.05) {
             lastJoystickAction = millis();
+            ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
             playImage(PREVIOUS);
         }
     }
@@ -199,13 +201,13 @@ void setup() {
 }
 
 void loop() {
-    for (uint8_t i = 0; i < sizeof(timers) / sizeof(periodicCall); i++ ) {
-        periodicCall *t = &timers[i];
+    for (uint8_t i = 0; i < sizeof(timers) / sizeof(periodicCall *); i++ ) {
+        periodicCall *t = timers[i];
 
         if (!t->active) continue;
 
         uint32_t now = millis();
-        if (now - t->lastCallMs > t->frequencyMs) {
+        if (now > t->lastCallMs && (now - t->lastCallMs) > t->frequencyMs) {
             executingTimer = t;
             t->callback();
             executingTimer = NULL;
