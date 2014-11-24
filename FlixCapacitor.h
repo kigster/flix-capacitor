@@ -17,7 +17,11 @@ typedef void (*timerCallback)(void);
 typedef struct periodicCallStruct {
     uint32_t frequencyMs;
     timerCallback callback;
+    bool active;
     uint32_t lastCallMs;
 } periodicCall;
+
+enum direction { PREVIOUS = -1, CURRENT = 0, NEXT = 1};
+#define MUSIC_ENABLED
 
 #endif
