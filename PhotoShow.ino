@@ -1,5 +1,7 @@
 #define BUFFPIXEL 32
+#include <ILI9341_t3.h>
 
+File bmpFile;
 void resetScreen() {
     tft.fillScreen(tft.color565(0x20, 0x20, 0x20));
 

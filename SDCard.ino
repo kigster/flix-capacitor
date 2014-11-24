@@ -9,11 +9,16 @@
  */
 #include "FlixCapacitor.h"
 
+Sd2Card card;
+SdVolume volume;
+SdFile root;
+
 const static int filesAllocSize = 20;
 
-void nextFileInList(FileList *fileList, char* fullPath) {
+void nextFileInList(FileList *fileList, char* fullPath, direction dir) {
     if (fileList->size > 0) {
-        fileList->currentIndex++;
+        fileList->currentIndex += (int) dir;
+        if (fileList->currentIndex < 0) fileList->currentIndex = fileList->size - 1;
         fileList->currentIndex = fileList->currentIndex % fileList->size;
         sprintf(fullPath, "%s/%s", fileList->parentFolder, fileList->files[fileList->currentIndex]);
     }
@@ -44,7 +49,7 @@ FileList *findFilesMatchingExtension(char *folder, char *extension) {
     fileList->files = (char **) malloc(filesAllocSize * sizeof(char *));
     fileList->allocated = filesAllocSize;
     fileList->size = 0;
-    fileList->currentIndex = -1;
+    fileList->currentIndex = 0;
 
     for (int i = 0; i < fileList->allocated ; ++i) {
         fileList->files[i] = (char *)malloc(FAT32_FILENAME_LENGTH);
