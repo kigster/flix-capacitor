@@ -32,6 +32,11 @@
 			<locationURI>ArduinoPivateLibPath/Audio</locationURI>
 		</link>
 		<link>
+			<name>Libraries/DS1307RTC</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/DS1307RTC</locationURI>
+		</link>
+		<link>
 			<name>Libraries/ILI9341_t3</name>
 			<type>2</type>
 			<locationURI>ArduinoPivateLibPath/ILI9341_t3</locationURI>
@@ -45,6 +50,26 @@
 			<name>Libraries/SPI</name>
 			<type>2</type>
 			<locationURI>ArduinoPivateLibPath/SPI</locationURI>
+		</link>
+		<link>
+			<name>Libraries/SoftwareSerial</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/SoftwareSerial</locationURI>
+		</link>
+		<link>
+			<name>Libraries/Sparkfun7SD</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/Sparkfun7SD</locationURI>
+		</link>
+		<link>
+			<name>Libraries/Sparkfun7SD-Serial</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/Sparkfun7SD-Serial</locationURI>
+		</link>
+		<link>
+			<name>Libraries/Time</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/Time</locationURI>
 		</link>
 		<link>
 			<name>Libraries/Wire</name>

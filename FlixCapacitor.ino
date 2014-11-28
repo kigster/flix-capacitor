@@ -14,7 +14,11 @@
 #include <ILI9341_t3.h>
 #include "FlixCapacitor.h"
 #include "Joystick.h"
+#include "TeensyTimeManager.h"
+#include <Sparkfun7SD.h>
+#include <Sparkfun7SD_Serial.h>
 
+//#define SET_TIME_TO_COMPILE
 #ifdef MUSIC_ENABLED
 #include "MusicPlayer.h"
 #endif
@@ -31,8 +35,9 @@ periodicCall TrackTimer    = {  10001, autoPlayMusic,          false};
 periodicCall VolumeTimer   = {     48, adjustVolume,           true };
 periodicCall RamCheckTimer = {  10002, reportAvailableRAM,     true };
 periodicCall JoystickTimer = {    202, readJoystick,           true };
+periodicCall ClockTimer    = {   1000, showClock,              true };
 
-periodicCall *timers[] = { &ImageTimer, &VolumeTimer, &RamCheckTimer, &TrackTimer, &JoystickTimer };
+periodicCall *timers[] = { &ImageTimer, &VolumeTimer, &RamCheckTimer, &TrackTimer, &JoystickTimer, &ClockTimer};
 periodicCall *executingTimer;
 
 FileList *photos, *tracks;
@@ -41,7 +46,7 @@ char trackPathName[FAT32_FILENAME_LENGTH * 2];
 char photoPathName[FAT32_FILENAME_LENGTH * 2];
 
 long lastMillis = 0, lastJoystickAction = 0;
-bool ledOn = false;
+bool ledOn = false, colonOn = false;
 bool sdCardInitialized = false;
 char stringBuffer[30];
 
@@ -49,14 +54,26 @@ uint8_t pinVolume = 15;
 uint8_t pinX = A2;
 uint8_t pinY = A3;
 uint8_t pinButton = 8;
+uint8_t pin7SD = 3;
 
 Joystick joystick(pinX, pinY, pinButton);
-
 
 #ifdef MUSIC_ENABLED
 MusicPlayer player(0.7);
 #endif
 
+Sparkfun7SD_Serial display7s(pin7SD);
+
+void showClock() {
+    colonOn = !colonOn;
+//    display7s.print("1040");
+    display7s.printTime(hour(), minute(), colonOn);
+    Serial.print(F("Timer: lastMs="));
+    Serial.print(ClockTimer.lastCallMs);
+    Serial.print(F(" Freq="));
+    Serial.print(ClockTimer.frequencyMs);
+    Serial.println("");
+}
 
 void readJoystick() {
     if (millis() - lastJoystickAction > JOYSTICK_BLOCKTIME_AFTER_ACTION_MS) {
@@ -84,11 +101,11 @@ void readJoystick() {
         }
 
         if (action) {
-            Serial.print("Joystick Action Detected: X = ");
+            Serial.print(F("Joystick Action Detected: X = "));
             Serial.print(joystick.readX());
-            Serial.print(", Y = ");
+            Serial.print(F(", Y = "));
             Serial.print(joystick.readY());
-            Serial.print(", button is ");
+            Serial.print(F(", button is "));
             pressed ? Serial.println("PRESSED") : Serial.println("Not Pressed");
             lastJoystickAction = actionStart;
         }
@@ -96,7 +113,7 @@ void readJoystick() {
 }
 
 void reportAvailableRAM() {
-    Serial.print("Free HEAP RAM is: ");
+    Serial.print(F("Free HEAP RAM is: "));
     Serial.print(1.0 * FreeRamTeensy() / 1014);
     Serial.println("Kb");
 }
@@ -138,18 +155,18 @@ void displayMessageWindow(uint8_t x, uint8_t y, uint32_t color) {
 void playTrack(direction direction) {
     if (sdCardInitialized) {
         nextFileInList(tracks, trackPathName, direction);
-        Serial.print("Starting to play next track "); Serial.print(trackPathName);
+        Serial.print(F("Starting to play next track ")); Serial.print(trackPathName);
     #ifdef MUSIC_ENABLED
         if (player.play(trackPathName)) {
-            Serial.println(", started OK!");
+            Serial.println(F(", started OK!"));
             displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
             delay(500);
         } else {
-            Serial.println(", failed to start");
+            Serial.println(F(", failed to start"));
         }
     #endif
     } else {
-        Serial.println("SD Card not initialized, can't play track");
+        Serial.println(F("SD Card not initialized, can't play track"));
         readSDCard();
     }
 }
@@ -157,10 +174,10 @@ void playTrack(direction direction) {
 void playImage(direction direction) {
     if (sdCardInitialized) {
         nextFileInList(photos, photoPathName, direction);
-        Serial.print("Starting to play next photo"); Serial.println(photoPathName);
+        Serial.print(F("Starting to play next photo")); Serial.println(photoPathName);
         bmpDraw(photoPathName, 0, 0);
     } else {
-        Serial.println("SD Card not initialized, can't play image");
+        Serial.println(F("SD Card not initialized, can't play image"));
         readSDCard();
     }
 }
@@ -171,10 +188,10 @@ bool readSDCard() {
         photos = findFilesMatchingExtension((char *)"/PHOTOS", (char *)".BMP");
         tracks = findFilesMatchingExtension((char *)"/MUSIC", (char *)".WAV");
         for (int i = 0; i < photos->size; i++) {
-            Serial.print("Found image file "); Serial.println(photos->files[i]);
+            Serial.print(F("Found image file ")); Serial.println(photos->files[i]);
         }
         for (int i = 0; i < tracks->size; i++) {
-            Serial.print("Found audio file "); Serial.println(tracks->files[i]);
+            Serial.print(F("Found audio file ")); Serial.println(tracks->files[i]);
         }
     }
     return sdCardInitialized;
@@ -184,11 +201,16 @@ void adjustVolume() {
     #ifdef MUSIC_ENABLED
     float vol = abs(1.0 - 1.0 * analogRead(pinVolume) / 1024.0);
     if (player.setVolume(vol)) {
-        Serial.print("Changed volume to ");
+        Serial.print(F("Changed volume to "));
         Serial.println(player.volume());
     }
     #endif
 }
+
+time_t getTeensy3Time() {
+    return Teensy3Clock.get();
+}
+
 
 /*__________________________________________________________________________________________*/
 
@@ -196,6 +218,7 @@ void setup() {
     SPI.setMOSI(7);
     SPI.setSCK(14);
     pinMode(10, OUTPUT);
+    pinMode(pin7SD, OUTPUT);
     pinMode(pinVolume, INPUT);
     delay(10);
     Serial.begin(9600);
@@ -215,6 +238,25 @@ void setup() {
 
     playImage(CURRENT);
     adjustVolume();
+
+    display7s.begin();
+    display7s.brightness(255);
+
+
+    setSyncProvider(getTeensy3Time);
+    if (timeStatus() != timeSet) {
+        Serial.println("Unable to sync with the RTC");
+    } else {
+        Serial.println("RTC has set the system time");
+    }
+
+
+#ifdef SET_TIME_TO_COMPILE
+    TeensyTimeManager *timeManager = new TeensyTimeManager();
+    bool result = timeManager->setTimeToCompileTime();
+    Serial.println(result ? "Successful Time Set" : "Could not set time");
+#endif
+
 }
 
 void loop() {
