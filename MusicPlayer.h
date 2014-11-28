@@ -33,13 +33,15 @@ public:
     void stop();
     bool isPlaying();
     /* always between 0 and 1.0, it's automatically adjusted for maxVolume */
-    bool setVolume(float volume);
     float volume();
-    /* also between 0 and 1.0, it defines what 1.0 means for volume */
+    bool setVolume(float volume);
     void setMaxVolume(float maxVolume);
+    void setBassVolume(float volume);
+    void moarBass(bool enabled);
+    void changeBassVolume(bool up);
 private:
-    void init();
     float _volume = 0.25;
+    float _bassVolume = 0;
     float _maxVolume = 0.6;
 
 };

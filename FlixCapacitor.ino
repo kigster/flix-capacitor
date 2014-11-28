@@ -5,7 +5,8 @@
  *      Author: Konstantin Gredeskoul
  *        Code: https://github.com/kigster
  *
- *  (c) 2014 All rights reserved, MIT License.
+ *  (c) 2014 All rights reserved, MIT License
+ *
  */
 
 #include <SPI.h>
@@ -18,16 +19,18 @@
 #include "MusicPlayer.h"
 #endif
 
+#define JOYSTICK_BLOCKTIME_AFTER_ACTION_MS 500
+
 #define TFT_DC  20
 #define TFT_CS  21
 #define SD_CS   10
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 
-periodicCall ImageTimer    = {   6000, autoPlayPhotos,         true};
-periodicCall TrackTimer    = { 120000, autoPlayMusic,          false};
-periodicCall VolumeTimer   = {     50, adjustVolume,           true };
-periodicCall RamCheckTimer = {  10000, reportAvailableRAM,     true };
-periodicCall JoystickTimer = {    200, readJoystick,           true };
+periodicCall ImageTimer    = {   6003, autoPlayPhotos,         true};
+periodicCall TrackTimer    = {  10001, autoPlayMusic,          false};
+periodicCall VolumeTimer   = {     48, adjustVolume,           true };
+periodicCall RamCheckTimer = {  10002, reportAvailableRAM,     true };
+periodicCall JoystickTimer = {    202, readJoystick,           true };
 
 periodicCall *timers[] = { &ImageTimer, &VolumeTimer, &RamCheckTimer, &TrackTimer, &JoystickTimer };
 periodicCall *executingTimer;
@@ -37,7 +40,7 @@ FileList *photos, *tracks;
 char trackPathName[FAT32_FILENAME_LENGTH * 2];
 char photoPathName[FAT32_FILENAME_LENGTH * 2];
 
-long lastMillis = 0, lastJoystickAction = 0, lastJoystickPrint = 0;
+long lastMillis = 0, lastJoystickAction = 0;
 bool ledOn = false;
 bool sdCardInitialized = false;
 char stringBuffer[30];
@@ -46,48 +49,48 @@ uint8_t pinVolume = 15;
 uint8_t pinX = A2;
 uint8_t pinY = A3;
 uint8_t pinButton = 8;
+
 Joystick joystick(pinX, pinY, pinButton);
 
 
 #ifdef MUSIC_ENABLED
-MusicPlayer player;
+MusicPlayer player(0.7);
 #endif
 
+
 void readJoystick() {
-    bool pressed = joystick.buttonPressed();
-
-    if (millis() - lastJoystickPrint > 500) {
-        lastJoystickPrint = millis();
-        Serial.print("Joystick: X = ");
-        Serial.print(joystick.readX());
-        Serial.print(", Y = ");
-        Serial.print(joystick.readY());
-        Serial.print(", button is ");
-        pressed ? Serial.println("PRESSED") : Serial.println("Not Pressed");
-    }
-
-    if (millis() - lastJoystickAction > 250) {
+    if (millis() - lastJoystickAction > JOYSTICK_BLOCKTIME_AFTER_ACTION_MS) {
+        long actionStart = millis();
+        bool action = true;
+        bool pressed = joystick.buttonPressed();
         if (pressed) {
-            lastJoystickAction = millis();
             if (player.isPlaying()) {
                 player.stop();
             } else {
                 playTrack(CURRENT);
             }
-        } else if (joystick.readY() > 0.8) {
-            lastJoystickAction = millis();
+        } else if (joystick.readY() > 0.98) {
             playTrack(NEXT);
-        } else if (joystick.readY() < 0.47) {
-            lastJoystickAction = millis();
+        } else if (joystick.readY() < 0.02) {
             playTrack(PREVIOUS);
-        } else if (joystick.readX() > 0.95) {
-            lastJoystickAction = millis();
+        } else if (joystick.readX() > 0.98) {
             ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
             playImage(NEXT);
-        } else if (joystick.readX() < 0.05) {
-            lastJoystickAction = millis();
+        } else if (joystick.readX() < 0.02) {
             ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
             playImage(PREVIOUS);
+        } else {
+            action = false;
+        }
+
+        if (action) {
+            Serial.print("Joystick Action Detected: X = ");
+            Serial.print(joystick.readX());
+            Serial.print(", Y = ");
+            Serial.print(joystick.readY());
+            Serial.print(", button is ");
+            pressed ? Serial.println("PRESSED") : Serial.println("Not Pressed");
+            lastJoystickAction = actionStart;
         }
     }
 }
@@ -103,19 +106,33 @@ void autoPlayPhotos() {
 }
 
 void autoPlayMusic() {
-    playTrack(NEXT);
+    if (!player.isPlaying())
+        playTrack(NEXT);
 }
 
-void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color, uint8_t shift) {
+void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color) {
+    displayMessageWindow(x, y, 0x0245);
+    displayMessageWithShadow(title, message, x, y, color, 0);
+}
+
+void displayMessageWithShadow(char *title, char *message, uint8_t x, uint8_t y, uint32_t color, uint8_t shift) {
+    if (shift == 0) {
+        // call ourselves recursively to draw a tiny shadow
+        displayMessageWithShadow(title, message, x, y, ILI9341_BLACK, 2);
+    }
     tft.setCursor(x + shift, y + shift);
     tft.setTextSize(2);
     tft.setTextColor(color);
-    for (int i = 0; i < 3; i++) {
-        tft.drawRoundRect(x - 10 + shift + i, y - 10 + shift + i, tft.width() - 2 * (x - 10), tft.height() - 2 * (y - 10), 5, color);
-    }
     tft.print(title);
     tft.setCursor(x + shift, y + 20 + shift);
     tft.print(message);
+}
+
+void displayMessageWindow(uint8_t x, uint8_t y, uint32_t color) {
+    for (int i = 0; i < 2; i++) {
+        tft.drawRoundRect(x - 10 + i , y - 10 + i, tft.width() - 2 * (x - 10), tft.height() - 2 * (y - 10), 5, ILI9341_BLACK);
+    }
+    tft.fillRoundRect(x - 10, y - 10, tft.width() - 2 * (x - 10), tft.height() - 2 * (y - 10), 5, color);
 }
 
 void playTrack(direction direction) {
@@ -125,8 +142,7 @@ void playTrack(direction direction) {
     #ifdef MUSIC_ENABLED
         if (player.play(trackPathName)) {
             Serial.println(", started OK!");
-            displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_BLACK, 2);
-            displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE, 0);
+            displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
             delay(500);
         } else {
             Serial.println(", failed to start");
@@ -165,8 +181,8 @@ bool readSDCard() {
 }
 
 void adjustVolume() {
-    float vol = abs(1.0 - 1.0 * analogRead(pinVolume) / 1024.0);
     #ifdef MUSIC_ENABLED
+    float vol = abs(1.0 - 1.0 * analogRead(pinVolume) / 1024.0);
     if (player.setVolume(vol)) {
         Serial.print("Changed volume to ");
         Serial.println(player.volume());
@@ -193,6 +209,7 @@ void setup() {
 
 #ifdef MUSIC_ENABLED
     player.begin();
+    player.moarBass(true);
 #endif
     joystick.begin();
 

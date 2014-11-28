@@ -19,7 +19,6 @@ AudioControlSGTL5000 sgtl5000;
 MusicPlayer::MusicPlayer() {
     _maxVolume = MUSIC_PLAYER_DEFAULT_MAX_VOLUME;
     _volume = 0.5 * _maxVolume;
-    init();
 }
 
 MusicPlayer::MusicPlayer(float maxVolume) {
@@ -27,17 +26,20 @@ MusicPlayer::MusicPlayer(float maxVolume) {
     if (_maxVolume > 1.0 || _maxVolume < 0)
         _maxVolume = MUSIC_PLAYER_DEFAULT_MAX_VOLUME;
     _volume = 0.5 * _maxVolume;
-    init();
 }
 
-void MusicPlayer::init() {
+void MusicPlayer::moarBass(bool enabled) {
+    enabled ? sgtl5000.enhanceBassEnable() : sgtl5000.enhanceBassDisable();
 }
 
 void MusicPlayer::begin() {
     AudioMemory(MUSIC_PLAYER_DEFAULT_MEMORY);
 
     sgtl5000.enable();
+    sgtl5000.audioPostProcessorEnable();
     sgtl5000.volume(_volume);
+    sgtl5000.unmuteHeadphone();
+    sgtl5000.unmuteLineout();
 }
 
 bool MusicPlayer::play(const char *filename) {
@@ -63,6 +65,27 @@ void MusicPlayer::stop() {
     }
 }
 
+
+void MusicPlayer::changeBassVolume(bool up) {
+    _bassVolume = _bassVolume + (up ? 0.1 : -0.1);
+    if (_bassVolume > _maxVolume) _bassVolume = _maxVolume;
+    if (_bassVolume < 0) _bassVolume = 0;
+    sgtl5000.enhanceBass(_volume, _bassVolume, 0, 1);
+    Serial.print("volume is at "); Serial.print(_volume);
+    Serial.print(", bassVolume is at "); Serial.println(_bassVolume);
+}
+
+void MusicPlayer::setBassVolume(float bassVolume) {
+    if (bassVolume > 1.0 || bassVolume < 0)
+        return;
+
+    bassVolume = bassVolume * _maxVolume;
+    if (abs(bassVolume - _bassVolume) > 0.02) {
+        _bassVolume = bassVolume;
+        sgtl5000.enhanceBass(_volume, _bassVolume, 0, 2);
+    }
+}
+
 bool MusicPlayer::setVolume(float volume) {
     if (volume > 1.0 || volume < 0)
         return false;
@@ -71,6 +94,7 @@ bool MusicPlayer::setVolume(float volume) {
     if (abs(volume - _volume) > 0.02) {
         _volume = volume;
         sgtl5000.volume(_volume);
+        sgtl5000.enhanceBass(_volume, _bassVolume, 0, 3);
         return true;
     } else
         return false;
