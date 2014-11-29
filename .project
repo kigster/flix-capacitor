@@ -27,14 +27,14 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>Libraries/Adafruit_NeoPixel</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/Adafruit_NeoPixel</locationURI>
+		</link>
+		<link>
 			<name>Libraries/Audio</name>
 			<type>2</type>
 			<locationURI>ArduinoPivateLibPath/Audio</locationURI>
-		</link>
-		<link>
-			<name>Libraries/DS1307RTC</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/DS1307RTC</locationURI>
 		</link>
 		<link>
 			<name>Libraries/ILI9341_t3</name>

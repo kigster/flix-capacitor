@@ -18,7 +18,6 @@
 
 #ifndef MUSICPLAYER_H_
 #define MUSICPLAYER_H_
-
 #include <Audio.h>
 
 #define MUSIC_PLAYER_DEFAULT_MAX_VOLUME 0.6
@@ -28,7 +27,12 @@ class MusicPlayer {
 public:
     MusicPlayer();
     MusicPlayer(float maxVolume);
+
     void begin();
+
+    void turnOn();
+    void turnOff();
+
     bool play(const char *filename);
     void stop();
     bool isPlaying();
@@ -43,6 +47,7 @@ private:
     float _volume = 0.25;
     float _bassVolume = 0;
     float _maxVolume = 0.6;
+    bool _on;
 
 };
 

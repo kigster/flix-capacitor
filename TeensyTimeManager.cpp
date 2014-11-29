@@ -10,6 +10,7 @@
 
 #include "TeensyTimeManager.h"
 #include <Time.h>
+#include <Arduino.h>
 
 TeensyTimeManager::TeensyTimeManager() {
     const char *monthNamesList[12] = {
@@ -24,9 +25,10 @@ bool TeensyTimeManager::setTimeToCompileTime() {
     // get the date and time the compiler was run
     if (getDate(__DATE__) && getTime(__TIME__)) {
         // and configure the RTC with this info
-        time_t compileTime = makeTime(tm);
+        time_t compileTime = makeTime(tm) + 30;
         Teensy3Clock.set(compileTime);
         setTime(compileTime);
+        return true;
     }
     return false;
 }

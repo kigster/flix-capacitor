@@ -19,6 +19,7 @@ AudioControlSGTL5000 sgtl5000;
 MusicPlayer::MusicPlayer() {
     _maxVolume = MUSIC_PLAYER_DEFAULT_MAX_VOLUME;
     _volume = 0.5 * _maxVolume;
+    _on = false;
 }
 
 MusicPlayer::MusicPlayer(float maxVolume) {
@@ -26,6 +27,7 @@ MusicPlayer::MusicPlayer(float maxVolume) {
     if (_maxVolume > 1.0 || _maxVolume < 0)
         _maxVolume = MUSIC_PLAYER_DEFAULT_MAX_VOLUME;
     _volume = 0.5 * _maxVolume;
+    _on = false;
 }
 
 void MusicPlayer::moarBass(bool enabled) {
@@ -34,20 +36,39 @@ void MusicPlayer::moarBass(bool enabled) {
 
 void MusicPlayer::begin() {
     AudioMemory(MUSIC_PLAYER_DEFAULT_MEMORY);
-
     sgtl5000.enable();
-    sgtl5000.audioPostProcessorEnable();
-    sgtl5000.volume(_volume);
-    sgtl5000.unmuteHeadphone();
-    sgtl5000.unmuteLineout();
+}
+
+void MusicPlayer::turnOn() {
+    if (!_on) {
+        delay(100);
+        sgtl5000.audioPostProcessorEnable();
+        delay(100);
+        sgtl5000.volume(_volume);
+        sgtl5000.enhanceBassEnable();
+        sgtl5000.unmuteHeadphone();
+        sgtl5000.unmuteLineout();
+        _on = true;
+    }
+}
+
+void MusicPlayer::turnOff() {
+    if (_on) {
+        sgtl5000.muteHeadphone();
+        sgtl5000.muteLineout();
+    }
+
+    _on = false;
 }
 
 bool MusicPlayer::play(const char *filename) {
-    stop();
+    turnOn();
 
     if (!SD.exists((char *) filename)) {
         return false;
     }
+    if (playWave.isPlaying())
+        playWave.stop();
 
     playWave.play(filename);
     // A brief delay for the library read WAV info
@@ -62,6 +83,7 @@ bool MusicPlayer::isPlaying() {
 void MusicPlayer::stop() {
     if (playWave.isPlaying()) {
         playWave.stop();
+        turnOff();
     }
 }
 

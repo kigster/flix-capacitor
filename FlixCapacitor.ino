@@ -14,11 +14,17 @@
 #include <ILI9341_t3.h>
 #include "FlixCapacitor.h"
 #include "Joystick.h"
-#include "TeensyTimeManager.h"
-#include <Sparkfun7SD.h>
+#include "neopixel/NeoPixelManager.h"
 #include <Sparkfun7SD_Serial.h>
+#include "print_helpers.h"
 
 //#define SET_TIME_TO_COMPILE
+#ifdef SET_TIME_TO_COMPILE
+#include "TeensyTimeManager.h"
+#endif
+
+#include <Time.h>
+
 #ifdef MUSIC_ENABLED
 #include "MusicPlayer.h"
 #endif
@@ -33,11 +39,23 @@ ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 periodicCall ImageTimer    = {   6003, autoPlayPhotos,         true};
 periodicCall TrackTimer    = {  10001, autoPlayMusic,          false};
 periodicCall VolumeTimer   = {     48, adjustVolume,           true };
-periodicCall RamCheckTimer = {  10002, reportAvailableRAM,     true };
+periodicCall StatusTimer   = {  10002, status,                 true };
 periodicCall JoystickTimer = {    202, readJoystick,           true };
 periodicCall ClockTimer    = {   1000, showClock,              true };
+periodicCall NeoPixelShow  = {     10, neoPixelShow,           true };
+periodicCall NeoPixelNext  = {   5000, neoPixelNext,           true };
 
-periodicCall *timers[] = { &ImageTimer, &VolumeTimer, &RamCheckTimer, &TrackTimer, &JoystickTimer, &ClockTimer};
+// don't forget to add a new timer to the array below!
+periodicCall *timers[] = {
+        &ImageTimer,
+        &VolumeTimer,
+        &StatusTimer,
+        &TrackTimer,
+        &JoystickTimer,
+        &ClockTimer,
+        &NeoPixelShow,
+        &NeoPixelNext};
+
 periodicCall *executingTimer;
 
 FileList *photos, *tracks;
@@ -54,25 +72,23 @@ uint8_t pinVolume = 15;
 uint8_t pinX = A2;
 uint8_t pinY = A3;
 uint8_t pinButton = 8;
-uint8_t pin7SD = 3;
+uint8_t pin7SD = 4;
+uint8_t pinNeoPixels = 2;
 
 Joystick joystick(pinX, pinY, pinButton);
+NeoPixelManager neoPixelManager(4, pinNeoPixels);
 
 #ifdef MUSIC_ENABLED
 MusicPlayer player(0.7);
 #endif
 
-Sparkfun7SD_Serial display7s(pin7SD);
+Sparkfun7SD_Serial display(4);
+
+char buf[20];
 
 void showClock() {
     colonOn = !colonOn;
-//    display7s.print("1040");
-    display7s.printTime(hour(), minute(), colonOn);
-    Serial.print(F("Timer: lastMs="));
-    Serial.print(ClockTimer.lastCallMs);
-    Serial.print(F(" Freq="));
-    Serial.print(ClockTimer.frequencyMs);
-    Serial.println("");
+    display.printTime(hour(), minute(), colonOn);
 }
 
 void readJoystick() {
@@ -101,6 +117,7 @@ void readJoystick() {
         }
 
         if (action) {
+            //printv("Joystick Action Detected: X = ", joystick.readX());
             Serial.print(F("Joystick Action Detected: X = "));
             Serial.print(joystick.readX());
             Serial.print(F(", Y = "));
@@ -112,10 +129,10 @@ void readJoystick() {
     }
 }
 
-void reportAvailableRAM() {
-    Serial.print(F("Free HEAP RAM is: "));
-    Serial.print(1.0 * FreeRamTeensy() / 1014);
-    Serial.println("Kb");
+void status() {
+    printv(F("Free HEAP RAM (Kb): "), 1.0 * FreeRamTeensy() / 1014);
+    sprintf(buf, "%d:%02d:%02d, %d/%d/%d",hour(), minute(), second(), month(), day(), year());
+    printv(F("Current time is: "), buf);
 }
 
 void autoPlayPhotos() {
@@ -128,7 +145,7 @@ void autoPlayMusic() {
 }
 
 void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color) {
-    displayMessageWindow(x, y, 0x0245);
+    displayMessageWindow(x, y, neoPixelManager.color(20, 20, 80));
     displayMessageWithShadow(title, message, x, y, color, 0);
 }
 
@@ -153,6 +170,10 @@ void displayMessageWindow(uint8_t x, uint8_t y, uint32_t color) {
 }
 
 void playTrack(direction direction) {
+    playTrack(direction, 0);
+}
+
+void playTrack(direction direction, int attempts) {
     if (sdCardInitialized) {
         nextFileInList(tracks, trackPathName, direction);
         Serial.print(F("Starting to play next track ")); Serial.print(trackPathName);
@@ -162,7 +183,13 @@ void playTrack(direction direction) {
             displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
             delay(500);
         } else {
-            Serial.println(F(", failed to start"));
+            if (attempts == 0) {
+               Serial.println(F(", failed to start, trying one more time..."));
+               displayMessage((char *)"Can't open file :(", trackPathName, 20, 100, neoPixelManager.color(127, 10, 10));
+               playTrack(direction, attempts + 1);
+            } else {
+                Serial.println(F(", failed to start"));
+            }
         }
     #endif
     } else {
@@ -211,6 +238,13 @@ time_t getTeensy3Time() {
     return Teensy3Clock.get();
 }
 
+void neoPixelShow() {
+    neoPixelManager.refreshEffect();
+}
+void neoPixelNext() {
+    neoPixelManager.nextEffect();
+    printv("Next effect # is ",  neoPixelManager.effects()->currentEffectIndex());
+}
 
 /*__________________________________________________________________________________________*/
 
@@ -239,23 +273,23 @@ void setup() {
     playImage(CURRENT);
     adjustVolume();
 
-    display7s.begin();
-    display7s.brightness(255);
+    display.begin();
 
-
+#ifdef SET_TIME_TO_COMPILE
+    TeensyTimeManager *timeManager = new TeensyTimeManager();
+    bool result = timeManager->setTimeToCompileTime();
+    Serial.println(result ? "Successful Time Set" : "Could not set time");
     setSyncProvider(getTeensy3Time);
     if (timeStatus() != timeSet) {
         Serial.println("Unable to sync with the RTC");
     } else {
         Serial.println("RTC has set the system time");
     }
-
-
-#ifdef SET_TIME_TO_COMPILE
-    TeensyTimeManager *timeManager = new TeensyTimeManager();
-    bool result = timeManager->setTimeToCompileTime();
-    Serial.println(result ? "Successful Time Set" : "Could not set time");
+#else
+    setSyncProvider(getTeensy3Time);
 #endif
+
+    neoPixelManager.begin();
 
 }
 

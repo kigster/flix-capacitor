@@ -12,8 +12,8 @@
 #define TEENSYTIMEMANAGER_H_
 
 #include <Time.h>
-#include <Wire.h>
-#include <DS1307RTC.h>
+#include "DS1307RTC.h"
+
 
 class TeensyTimeManager {
 public:
