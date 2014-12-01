@@ -11,14 +11,17 @@
 
 #include <SPI.h>
 #include <SD.h>
-#include <ILI9341_t3.h>
-#include "FlixCapacitor.h"
-#include "Joystick.h"
-#include "neopixel/NeoPixelManager.h"
 #include <Sparkfun7SD_Serial.h>
+#include <ILI9341_t3.h>
+
+
+#include "FlixCapacitor.h"
+#include "neopixel/NeoPixelManager.h"
+#include "Joystick.h"
 #include "print_helpers.h"
 
-#define SET_TIME_TO_COMPILE
+// uncomment, then clean project, build and upload it to set the time to compile time.
+// #define SET_TIME_TO_COMPILE
 #ifdef SET_TIME_TO_COMPILE
 #include "TeensyTimeManager.h"
 #endif
