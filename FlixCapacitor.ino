@@ -18,7 +18,7 @@
 #include <Sparkfun7SD_Serial.h>
 #include "print_helpers.h"
 
-//#define SET_TIME_TO_COMPILE
+#define SET_TIME_TO_COMPILE
 #ifdef SET_TIME_TO_COMPILE
 #include "TeensyTimeManager.h"
 #endif
@@ -44,6 +44,7 @@ periodicCall JoystickTimer = {    202, readJoystick,           true };
 periodicCall ClockTimer    = {   1000, showClock,              true };
 periodicCall NeoPixelShow  = {     10, neoPixelShow,           true };
 periodicCall NeoPixelNext  = {   5000, neoPixelNext,           true };
+periodicCall Reset7SD      = {  30000, resetSerialDisplay,     true };
 
 // don't forget to add a new timer to the array below!
 periodicCall *timers[] = {
@@ -54,7 +55,8 @@ periodicCall *timers[] = {
         &JoystickTimer,
         &ClockTimer,
         &NeoPixelShow,
-        &NeoPixelNext};
+        &NeoPixelNext,
+        &Reset7SD};
 
 periodicCall *executingTimer;
 
@@ -72,8 +74,9 @@ uint8_t pinVolume = 15;
 uint8_t pinX = A2;
 uint8_t pinY = A3;
 uint8_t pinButton = 8;
-uint8_t pin7SD = 4;
 uint8_t pinNeoPixels = 2;
+uint8_t pinSerialDisplay = 4;
+uint8_t pinSerialDisplayReset = 3;
 
 Joystick joystick(pinX, pinY, pinButton);
 NeoPixelManager neoPixelManager(4, pinNeoPixels);
@@ -82,9 +85,16 @@ NeoPixelManager neoPixelManager(4, pinNeoPixels);
 MusicPlayer player(0.7);
 #endif
 
-Sparkfun7SD_Serial display(4);
+Sparkfun7SD_Serial display(pinSerialDisplay);
 
-char buf[20];
+char buf[80];
+
+void resetSerialDisplay(){
+    digitalWrite(pinSerialDisplayReset, LOW); // keep high.  GND resets the display.
+    delay(10);
+    digitalWrite(pinSerialDisplayReset, HIGH); // keep high.  GND resets the display.
+    delay(10);
+}
 
 void showClock() {
     colonOn = !colonOn;
@@ -252,8 +262,11 @@ void setup() {
     SPI.setMOSI(7);
     SPI.setSCK(14);
     pinMode(10, OUTPUT);
-    pinMode(pin7SD, OUTPUT);
     pinMode(pinVolume, INPUT);
+    pinMode(pinSerialDisplayReset, OUTPUT);
+    digitalWrite(pinSerialDisplayReset, LOW); // keep high.  GND resets the display.
+    delay(100);
+    digitalWrite(pinSerialDisplayReset, HIGH); // keep high.  GND resets the display.
     delay(10);
     Serial.begin(9600);
 

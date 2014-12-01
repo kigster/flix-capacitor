@@ -13,8 +13,6 @@ Sd2Card card;
 SdVolume volume;
 SdFile root;
 
-const static int filesAllocSize = 20;
-
 void nextFileInList(FileList *fileList, char* fullPath, direction dir) {
     if (fileList->size > 0) {
         fileList->currentIndex += (int) dir;
@@ -23,40 +21,55 @@ void nextFileInList(FileList *fileList, char* fullPath, direction dir) {
         sprintf(fullPath, "%s/%s", fileList->parentFolder, fileList->files[fileList->currentIndex]);
     }
 }
-void listDirectory(FileList *fileList, File dir, int level, char *match) {
+void saveDirectory(FileList *fileList, File dir, int level, char *match) {
+    printv("Opening directory ", dir.name());
+    int files = 0;
+    // count how many files are there
     while (true) {
         File entry = dir.openNextFile();
-        if (!entry) {
-            break;
-        }
+        if (!entry) break;
+        if (!entry.isDirectory()) files ++;
+        entry.close();
+    }
+    printv("Files found: ", files);
 
+    dir.rewindDirectory();
+    if ((fileList->files = (char **) malloc(files * sizeof(char *))) == NULL) {
+        Serial.println("CAN NOT ALLOCATION MEMORY");
+        return;
+    }
+    fileList->allocated = files;
+
+    for (int i = 0; i < fileList->allocated ; ++i) {
+        if ((fileList->files[i] = (char *)malloc(FAT32_FILENAME_LENGTH)) == NULL) {
+            Serial.println("CAN NOT ALLOCATION MEMORY");
+            return;
+        }
+    }
+
+    while (true) {
+        File entry = dir.openNextFile();
+        if (!entry) break;
         if (!entry.isDirectory()) {
-            if (fileList->size >= fileList->allocated) {
-                return;
-            }
             if (strstr(entry.name(), match) != NULL) {
                 strcpy(fileList->files[fileList->size++], entry.name());
             }
         }
         entry.close();
     }
+    sprintf(buf, "loaded %d files from directory %s", files, dir.name());
+    Serial.println(buf);
 }
 
 
 FileList *findFilesMatchingExtension(char *folder, char *extension) {
     FileList *fileList = (FileList *) malloc(sizeof(FileList));
     fileList->parentFolder = folder;
-    fileList->files = (char **) malloc(filesAllocSize * sizeof(char *));
-    fileList->allocated = filesAllocSize;
     fileList->size = 0;
     fileList->currentIndex = 0;
 
-    for (int i = 0; i < fileList->allocated ; ++i) {
-        fileList->files[i] = (char *)malloc(FAT32_FILENAME_LENGTH);
-    }
-
     File root = SD.open(folder);
-    listDirectory(fileList, root, 0, extension);
+    saveDirectory(fileList, root, 0, extension);
     return fileList;
 }
 
