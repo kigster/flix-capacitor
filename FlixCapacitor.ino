@@ -14,7 +14,6 @@
 #include <Sparkfun7SD_Serial.h>
 #include <ILI9341_t3.h>
 
-
 #include "FlixCapacitor.h"
 #include "neopixel/NeoPixelManager.h"
 #include "Joystick.h"
@@ -30,15 +29,18 @@
 #include <Time.h>
 #endif
 
-#ifdef ENABLE_AUDIO_SD
-#include "MusicPlayer.h"
-#endif
-
 #define JOYSTICK_BLOCKTIME_AFTER_ACTION_MS 500
 
 #define TFT_DC  20
 #define TFT_CS  21
 #define SD_CS   10
+
+#ifdef ENABLE_AUDIO_SD
+#include "MusicPlayer.h"
+#include "FileSystem.h"
+FileSystem fileSystem(SD_CS);
+#endif
+
 
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 
@@ -222,7 +224,7 @@ void playTrack(direction direction) {
 
 void playTrack(direction direction, int attempts) {
     if (sdCardInitialized) {
-        nextFileInList(tracks, trackPathName, direction);
+        fileSystem.nextFileInList(tracks, trackPathName, direction);
         Serial.print(F("Starting to play next track ")); Serial.print(trackPathName);
     #ifdef ENABLE_AUDIO_SD
         if (player.play(trackPathName)) {
@@ -246,10 +248,12 @@ void playTrack(direction direction, int attempts) {
 }
 
 bool readSDCard() {
-    sdCardInitialized = initSDCard();
-    if (sdCardInitialized) {
-        photos = findFilesMatchingExtension((char *)"/PHOTOS", (char *)".BMP");
-        tracks = findFilesMatchingExtension((char *)"/MUSIC", (char *)".WAV");
+    if (!fileSystem.hasInitialized())
+    	fileSystem.initSDCard();
+
+    if (fileSystem.hasInitialized()) {
+        photos = fileSystem.findFilesMatchingExtension((char *)"/PHOTOS", (char *)".BMP");
+        tracks = fileSystem.findFilesMatchingExtension((char *)"/MUSIC", (char *)".WAV");
         for (int i = 0; i < photos->size; i++) {
             Serial.print(F("Found image file ")); Serial.println(photos->files[i]);
         }
@@ -303,7 +307,7 @@ void displayMessageWindow(uint8_t x, uint8_t y, uint32_t color) {
 
 void playImage(direction direction) {
     if (sdCardInitialized) {
-        nextFileInList(photos, photoPathName, direction);
+        fileSystem.nextFileInList(photos, photoPathName, direction);
         Serial.print(F("Starting to play next photo")); Serial.println(photoPathName);
         bmpDraw(photoPathName, 0, 0);
     } else {
@@ -348,13 +352,13 @@ void setup() {
 
     delay(3000);
 
-#ifdef ENABLE_AUIDIO_SD
+#ifdef ENABLE_AUDIO_SD
     SPI.setMOSI(7);
     SPI.setSCK(14);
     pinMode(10, OUTPUT);
     pinMode(pinVolume, INPUT);
-    sdCardInitialized = readSDCard();
-    if (!sdCardInitialized) {
+    fileSystem.initSDCard();
+    if (!fileSystem.hasInitialized()) {
     	ImageTimer.active = false;
     	TrackTimer.active = false;
     }
