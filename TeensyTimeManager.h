@@ -12,7 +12,7 @@
 #define TEENSYTIMEMANAGER_H_
 
 #include <Time.h>
-#include "DS1307RTC.h"
+#include <DS1307RTC.h>
 
 
 class TeensyTimeManager {

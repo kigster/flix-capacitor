@@ -29,32 +29,37 @@
 		<link>
 			<name>Libraries/Adafruit_NeoPixel</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Adafruit_NeoPixel</locationURI>
+			<locationURI>ArduinoHardwareLibPath/Adafruit_NeoPixel</locationURI>
 		</link>
 		<link>
 			<name>Libraries/Audio</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Audio</locationURI>
+			<locationURI>ArduinoHardwareLibPath/Audio</locationURI>
+		</link>
+		<link>
+			<name>Libraries/DS1307RTC</name>
+			<type>2</type>
+			<locationURI>ArduinoHardwareLibPath/DS1307RTC</locationURI>
 		</link>
 		<link>
 			<name>Libraries/ILI9341_t3</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/ILI9341_t3</locationURI>
+			<locationURI>ArduinoHardwareLibPath/ILI9341_t3</locationURI>
 		</link>
 		<link>
 			<name>Libraries/SD</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/SD</locationURI>
+			<locationURI>ArduinoHardwareLibPath/SD</locationURI>
 		</link>
 		<link>
 			<name>Libraries/SPI</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/SPI</locationURI>
+			<locationURI>ArduinoHardwareLibPath/SPI</locationURI>
 		</link>
 		<link>
 			<name>Libraries/SoftwareSerial</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/SoftwareSerial</locationURI>
+			<locationURI>ArduinoHardwareLibPath/SoftwareSerial</locationURI>
 		</link>
 		<link>
 			<name>Libraries/Sparkfun7SD</name>
@@ -69,12 +74,12 @@
 		<link>
 			<name>Libraries/Time</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Time</locationURI>
+			<locationURI>ArduinoHardwareLibPath/Time</locationURI>
 		</link>
 		<link>
 			<name>Libraries/Wire</name>
 			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Wire</locationURI>
+			<locationURI>ArduinoHardwareLibPath/Wire</locationURI>
 		</link>
 		<link>
 			<name>arduino/core</name>
