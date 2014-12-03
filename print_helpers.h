@@ -12,3 +12,7 @@
 #define printv(X,Y) (Serial.print(X) || Serial.println(Y))
 #endif
 
+#ifndef _printf
+#define _printf(X,Y) (Serial.printf(X, Y))
+#endif
+
