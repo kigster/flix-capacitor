@@ -8,6 +8,10 @@
  *  (c) 2014 All rights reserved, MIT License.
  */
 
+#include "FlixCapacitor.h"
+
+#ifdef ENABLE_CLOCK
+
 #ifndef TEENSYTIMEMANAGER_H_
 #define TEENSYTIMEMANAGER_H_
 
@@ -28,3 +32,5 @@ private:
 };
 
 #endif /* TIMEMANAGER_H_ */
+
+#endif /* ENABLE_CLOCK */

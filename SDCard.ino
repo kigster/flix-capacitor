@@ -9,6 +9,8 @@
  */
 #include "FlixCapacitor.h"
 
+#ifdef ENABLE_AUDIO_SD
+
 Sd2Card card;
 SdVolume volume;
 SdFile root;
@@ -35,14 +37,14 @@ void saveDirectory(FileList *fileList, File dir, int level, char *match) {
 
     dir.rewindDirectory();
     if ((fileList->files = (char **) malloc(files * sizeof(char *))) == NULL) {
-        Serial.println("CAN NOT ALLOCATION MEMORY");
+        Serial.println("Can't allocate RAM");
         return;
     }
     fileList->allocated = files;
 
     for (int i = 0; i < fileList->allocated ; ++i) {
         if ((fileList->files[i] = (char *)malloc(FAT32_FILENAME_LENGTH)) == NULL) {
-            Serial.println("CAN NOT ALLOCATION MEMORY");
+            Serial.println("Can't allocate RAM");
             return;
         }
     }
@@ -73,23 +75,6 @@ FileList *findFilesMatchingExtension(char *folder, char *extension) {
     return fileList;
 }
 
-
-
-uint32_t FreeRamTeensy() { // for Teensy 3.0
-    uint32_t stackTop;
-    uint32_t heapTop;
-
-    // current position of the stack.
-    stackTop = (uint32_t) &stackTop;
-
-    // current position of heap.
-    void* hTop = malloc(1);
-    heapTop = (uint32_t) hTop;
-    free(hTop);
-
-    // The difference is the free, available ram.
-    return stackTop - heapTop;
-}
 
 void showDirectory() {
     Serial.println(
@@ -147,3 +132,4 @@ bool initSDCard() {
     return true;
 }
 
+#endif // ENABLE_AUDIO_SD

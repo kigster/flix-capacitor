@@ -8,6 +8,10 @@
  *  (c) 2014 All rights reserved, MIT License.
  */
 
+#include "FlixCapacitor.h"
+
+#ifdef ENABLE_AUDIO_SD
+
 #include "MusicPlayer.h"
 
 AudioPlaySdWav playWave;
@@ -130,3 +134,5 @@ void MusicPlayer::setMaxVolume(float volume) {
 float MusicPlayer::volume() {
     return _volume;
 }
+
+#endif

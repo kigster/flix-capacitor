@@ -1,3 +1,8 @@
+
+#include "FlixCapacitor.h"
+
+#if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
+
 #define BUFFPIXEL 32
 #include <ILI9341_t3.h>
 
@@ -159,3 +164,4 @@ uint32_t read32(File &f) {
     return result;
 }
 
+#endif // ENABLE_TFT

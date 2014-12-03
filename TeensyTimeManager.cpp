@@ -7,6 +7,9 @@
  *
  *  (c) 2014 All rights reserved, MIT License.
  */
+#include "FlixCapacitor.h"
+
+#ifdef ENABLE_CLOCK
 
 #include "TeensyTimeManager.h"
 #include <Time.h>
@@ -63,3 +66,5 @@ bool TeensyTimeManager::getDate(const char *str) {
     tm.Year = CalendarYrToTm(Year);
     return true;
 }
+
+#endif // ENABLE_CLOCK

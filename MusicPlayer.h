@@ -15,6 +15,9 @@
  *
  *  (c) 2014 All rights reserved, MIT License.
  */
+#include "FlixCapacitor.h"
+
+#ifdef ENABLE_AUDIO_SD
 
 #ifndef MUSICPLAYER_H_
 #define MUSICPLAYER_H_
@@ -52,3 +55,5 @@ private:
 };
 
 #endif /* MUSICPLAYER_H_ */
+
+#endif /* ENABLE_AUDIO)_SD */
