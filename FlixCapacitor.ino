@@ -98,11 +98,6 @@ periodicCall *timers[] = {
 
 periodicCall *executingTimer;
 
-FileList *photos, *tracks;
-
-char trackPathName[FAT32_FILENAME_LENGTH * 2];
-char photoPathName[FAT32_FILENAME_LENGTH * 2];
-
 long lastMillis = 0, lastJoystickAction = 0;
 bool ledOn = false, colonOn = false;
 bool sdCardInitialized = false;
@@ -126,7 +121,15 @@ NeoPixelManager neoPixelManager(4, pinNeoPixels);
 
 #ifdef ENABLE_AUDIO_SD
 MusicPlayer player(0.7);
+FileList *tracks;
+char trackPathName[FAT32_FILENAME_LENGTH * 2];
 #endif
+
+#ifdef ENABLE_TFT
+char photoPathName[FAT32_FILENAME_LENGTH * 2];
+FileList *photos;
+#endif
+
 
 #ifdef ENABLE_7SD
 Sparkfun7SD_Serial display(pinSerialDisplay);
