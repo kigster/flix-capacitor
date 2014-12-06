@@ -33,15 +33,12 @@ public:
 	bool initSDCard();
 	bool hasInitialized();
 	FileList *findFilesMatchingExtension(char *folder, char *extension);
-	void nextFileInList(FileList *fileList, char* fullPath, direction dir);
+	bool nextFileInList(FileList *fileList, char* fullPath, direction dir);
 
 private:
 	void saveDirectory(FileList *fileList, File dir, int level, char *match);
 	bool sdCardInitialized;
 	uint8_t pinCS; // pin where slave select on SD is located
-	Sd2Card card;
-	SdVolume volume;
-	SdFile root;
 	char buf[50];
 };
 

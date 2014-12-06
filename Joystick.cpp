@@ -20,9 +20,25 @@ void Joystick::begin() {
     pinMode(pinX, INPUT);
     pinMode(pinY, INPUT);
     pinMode(pinButton, INPUT);
+
     digitalWrite(pinButton, HIGH);
 }
 
+
+bool Joystick::xForward() {
+    return (1 - readX() < JOYSTICK_THRESHOLD) ? true : false;
+}
+bool Joystick::xBack() {
+    return (readX() - JOYSTICK_X_BOUND < JOYSTICK_THRESHOLD) ? true : false;
+}
+bool Joystick::yUp() {
+    return (1 - readY() < JOYSTICK_THRESHOLD) ? true : false;
+
+}
+bool Joystick::yDown() {
+    return (readY() - JOYSTICK_Y_BOUND < JOYSTICK_THRESHOLD) ? true : false;
+
+}
 float Joystick::readX() {
     return 1.0 * analogRead(pinX) / 1024.0;
 }

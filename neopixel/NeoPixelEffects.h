@@ -24,12 +24,11 @@ public:
     int currentEffectIndex();
 
     // effects
-    void colorWipeRed(),
-        colorWipeBlue(),
-        colorWipeGreen(),
-        theaterChaseYellow(),
-        theaterChaseRed(),
-        theaterChaseBlue(),
+    void colorRed(),
+        colorBlue(),
+        colorGreen(),
+        colorYellow(),
+        randomColor(),
         rainbow(),
         rainbowCycle(),
         theaterChaseRainbow();

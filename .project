@@ -27,6 +27,16 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>Libraries/Adafruit-GFX-Library</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/Adafruit-GFX-Library</locationURI>
+		</link>
+		<link>
+			<name>Libraries/Adafruit-LED-Backpack-Library</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/Adafruit-LED-Backpack-Library</locationURI>
+		</link>
+		<link>
 			<name>Libraries/Adafruit_NeoPixel</name>
 			<type>2</type>
 			<locationURI>ArduinoHardwareLibPath/Adafruit_NeoPixel</locationURI>
@@ -57,21 +67,6 @@
 			<locationURI>ArduinoHardwareLibPath/SPI</locationURI>
 		</link>
 		<link>
-			<name>Libraries/SoftwareSerial</name>
-			<type>2</type>
-			<locationURI>ArduinoHardwareLibPath/SoftwareSerial</locationURI>
-		</link>
-		<link>
-			<name>Libraries/Sparkfun7SD</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Sparkfun7SD</locationURI>
-		</link>
-		<link>
-			<name>Libraries/Sparkfun7SD-Serial</name>
-			<type>2</type>
-			<locationURI>ArduinoPivateLibPath/Sparkfun7SD-Serial</locationURI>
-		</link>
-		<link>
 			<name>Libraries/Time</name>
 			<type>2</type>
 			<locationURI>ArduinoHardwareLibPath/Time</locationURI>
@@ -80,6 +75,11 @@
 			<name>Libraries/Wire</name>
 			<type>2</type>
 			<locationURI>ArduinoHardwareLibPath/Wire</locationURI>
+		</link>
+		<link>
+			<name>Libraries/menu</name>
+			<type>2</type>
+			<locationURI>ArduinoPivateLibPath/menu</locationURI>
 		</link>
 		<link>
 			<name>arduino/core</name>

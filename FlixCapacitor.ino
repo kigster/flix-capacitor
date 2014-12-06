@@ -11,7 +11,7 @@
 
 #include <SPI.h>
 #include <SD.h>
-#include <Sparkfun7SD_Serial.h>
+
 #include <ILI9341_t3.h>
 
 #include "FlixCapacitor.h"
@@ -19,8 +19,15 @@
 #include "Joystick.h"
 #include "print_helpers.h"
 
+
+#ifdef ENABLE_7SD
+#include <Adafruit_LEDBackpack.h>
+#include <Adafruit_GFX.h>
+Adafruit_7segment matrix = Adafruit_7segment();
+#endif
+
 // uncomment, then clean project, build and upload it to set the time to compile time.
-// #define SET_TIME_TO_COMPILE
+//#define SET_TIME_TO_COMPILE
 #ifdef SET_TIME_TO_COMPILE
 #include "TeensyTimeManager.h"
 #endif
@@ -38,12 +45,11 @@
 #ifdef ENABLE_AUDIO_SD
 #include "MusicPlayer.h"
 #include "FileSystem.h"
-FileSystem fileSystem(SD_CS);
+FileSystem fileSystem((uint8_t) SD_CS);
 #endif
 
 
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
-
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 #endif
 
@@ -63,12 +69,8 @@ periodicCall ClockTimer    = {   1000, showClock,              true };
 #endif
 
 #ifdef ENABLE_NEOPIXEL
-periodicCall NeoPixelShow  = {     10, neoPixelShow,           true };
+periodicCall NeoPixelShow  = {      5, neoPixelShow,           true };
 periodicCall NeoPixelNext  = {   5000, neoPixelNext,           true };
-#endif
-
-#ifdef ENABLE_7SD
-periodicCall Reset7SD      = {  30000, resetSerialDisplay,     true };
 #endif
 
 
@@ -77,7 +79,6 @@ periodicCall *timers[] = {
           &StatusTimer
 		, &JoystickTimer
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
-
 		, &ImageTimer
 #endif
 #ifdef ENABLE_AUDIO_SD
@@ -91,16 +92,12 @@ periodicCall *timers[] = {
         , &NeoPixelShow
         , &NeoPixelNext
 #endif
-#ifdef ENABLE_7SD
-		, &Reset7SD
-#endif
 };
 
 periodicCall *executingTimer;
 
 long lastMillis = 0, lastJoystickAction = 0;
 bool ledOn = false, colonOn = false;
-bool sdCardInitialized = false;
 char stringBuffer[30];
 
 uint8_t pinVolume = 15;
@@ -122,24 +119,12 @@ NeoPixelManager neoPixelManager(4, pinNeoPixels);
 #ifdef ENABLE_AUDIO_SD
 MusicPlayer player(0.7);
 FileList *tracks;
-char trackPathName[FAT32_FILENAME_LENGTH * 2];
+char trackPathName[FAT32_FILENAME_LENGTH * 2 + 2];
 #endif
 
 #ifdef ENABLE_TFT
-char photoPathName[FAT32_FILENAME_LENGTH * 2];
+char photoPathName[FAT32_FILENAME_LENGTH * 2 + 2];
 FileList *photos;
-#endif
-
-
-#ifdef ENABLE_7SD
-Sparkfun7SD_Serial display(pinSerialDisplay);
-
-void resetSerialDisplay(){
-    digitalWrite(pinSerialDisplayReset, LOW); // keep high.  GND resets the display.
-    delay(10);
-    digitalWrite(pinSerialDisplayReset, HIGH); // keep high.  GND resets the display.
-    delay(10);
-}
 #endif
 
 
@@ -165,38 +150,45 @@ void readJoystick() {
 		bool action = true;
 		bool pressed = joystick.buttonPressed();
 		if (pressed) {
-#ifdef ENABLE_AUDIO_SD
+            #ifdef ENABLE_AUDIO_SD
+            Serial.println("Joystick Button Pressed!");
 			if (player.isPlaying()) {
 				player.stop();
 			} else {
 				playTrack(CURRENT);
 			}
-#endif
-		} else if (joystick.readY() > 0.98) {
-#ifdef ENABLE_AUDIO_SD
-			playTrack(NEXT);
-#endif
-		} else if (joystick.readY() < 0.02) {
-#ifdef ENABLE_AUDIO_SD
+            #endif
+		} else if (joystick.yUp()) {
+            #ifdef ENABLE_AUDIO_SD
+			 playTrack(NEXT);
+		    Serial.println("Joystick UP");
+            #endif
+		} else if (joystick.yDown()) {
+            #ifdef ENABLE_AUDIO_SD
+            Serial.println("Joystick DOWN");
 			playTrack(PREVIOUS);
-#endif
-		} else if (joystick.readX() > 0.98) {
-#if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
-
+            #endif
+		} else if (joystick.xForward()) {
+            #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 			ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
 			playImage(NEXT);
-#endif
-		} else if (joystick.readX() < 0.02) {
-#if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
-
+			Serial.println("Joystick FORWARD");
+            #endif
+		} else if (joystick.xBack()) {
+            #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 			ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
 			playImage(PREVIOUS);
-#endif
+			Serial.println("Joystick BACK");
+            #endif
 		} else {
 			action = false;
 		}
 
-        if (action) {
+        if (action
+                || (joystick.readY() > 0.72)
+                || (joystick.readY() < 0.69)
+                || (joystick.readX() > 0.75)
+                || (joystick.readX() < 0.72) ) {
             //printv("Joystick Action Detected: X = ", joystick.readX());
             Serial.print(F("Joystick Action Detected: X = "));
             Serial.print(joystick.readX());
@@ -226,10 +218,9 @@ void playTrack(direction direction) {
 }
 
 void playTrack(direction direction, int attempts) {
-    if (sdCardInitialized) {
+    if (fileSystem.hasInitialized() && tracks != NULL) {
         fileSystem.nextFileInList(tracks, trackPathName, direction);
         Serial.print(F("Starting to play next track ")); Serial.print(trackPathName);
-    #ifdef ENABLE_AUDIO_SD
         if (player.play(trackPathName)) {
             Serial.println(F(", started OK!"));
             displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
@@ -237,16 +228,14 @@ void playTrack(direction direction, int attempts) {
         } else {
             if (attempts == 0) {
                Serial.println(F(", failed to start, trying one more time..."));
-               displayMessage((char *)"Can't open file :(", trackPathName, 20, 100, neoPixelManager.color(127, 10, 10));
+               displayMessage((char *)"Can't open file :(", trackPathName, 20, 100, ILI9341_RED);
                playTrack(direction, attempts + 1);
             } else {
                 Serial.println(F(", failed to start"));
             }
         }
-    #endif
     } else {
         Serial.println(F("SD Card not initialized, can't play track"));
-        readSDCard();
     }
 }
 
@@ -255,16 +244,21 @@ bool readSDCard() {
     	fileSystem.initSDCard();
 
     if (fileSystem.hasInitialized()) {
-        photos = fileSystem.findFilesMatchingExtension((char *)"/PHOTOS", (char *)".BMP");
-        tracks = fileSystem.findFilesMatchingExtension((char *)"/MUSIC", (char *)".WAV");
-        for (int i = 0; i < photos->size; i++) {
-            Serial.print(F("Found image file ")); Serial.println(photos->files[i]);
+        if (photos == NULL) {
+            photos = fileSystem.findFilesMatchingExtension((char *)"/PHOTOS", (char *)".BMP");
+            for (int i = 0; i < photos->size; i++) {
+                Serial.print(F("Found image file ")); Serial.println(photos->files[i]);
+            }
         }
-        for (int i = 0; i < tracks->size; i++) {
-            Serial.print(F("Found audio file ")); Serial.println(tracks->files[i]);
+        delay(50);
+        if (tracks == NULL) {
+            tracks = fileSystem.findFilesMatchingExtension((char *)"/MUSIC", (char *)".WAV");
+            for (int i = 0; i < tracks->size; i++) {
+                Serial.print(F("Found audio file ")); Serial.println(tracks->files[i]);
+            }
         }
     }
-    return sdCardInitialized;
+    return fileSystem.hasInitialized();
 }
 
 void adjustVolume() {
@@ -283,7 +277,11 @@ void autoPlayPhotos() {
 }
 
 void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color) {
+#ifdef ENABLE_NEOPIXEL
     displayMessageWindow(x, y, neoPixelManager.color(20, 20, 80));
+#else
+    displayMessageWindow(x, y, ILI9341_WHITE);
+#endif
     displayMessageWithShadow(title, message, x, y, color, 0);
 }
 
@@ -309,7 +307,7 @@ void displayMessageWindow(uint8_t x, uint8_t y, uint32_t color) {
 
 
 void playImage(direction direction) {
-    if (sdCardInitialized) {
+    if (fileSystem.hasInitialized() && photos != NULL) {
         fileSystem.nextFileInList(photos, photoPathName, direction);
         Serial.print(F("Starting to play next photo")); Serial.println(photoPathName);
         bmpDraw(photoPathName, 0, 0);
@@ -329,7 +327,16 @@ time_t getTeensy3Time() {
 void showClock() {
     colonOn = !colonOn;
 #ifdef ENABLE_7SD
-    display.printTime(hour(), minute(), colonOn);
+    int h = hour() % 12;
+    int m = minute();
+    matrix.clear();
+    if (h > 9)
+        matrix.writeDigitNum(0, h / 10, false);
+    matrix.writeDigitNum(1, h % 10, false);
+    matrix.drawColon(colonOn);
+    matrix.writeDigitNum(3, m / 10, false);
+    matrix.writeDigitNum(4, m % 10, false);
+    matrix.writeDisplay();
 #else
     Serial.printf("Time now is %d:%02d:%02d on %02d/%02d/%04d\n", hour(), minute(), second(), day(), month(), year() );
 #endif
@@ -360,18 +367,20 @@ void setup() {
     SPI.setSCK(14);
     pinMode(10, OUTPUT);
     pinMode(pinVolume, INPUT);
+    photos = NULL;
+    tracks = NULL;
     fileSystem.initSDCard();
     if (!fileSystem.hasInitialized()) {
     	ImageTimer.active = false;
     	TrackTimer.active = false;
+    } else {
+        readSDCard();
     }
 #endif
 
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
-
     tft.begin();
     tft.setRotation(3);
-    playImage(CURRENT);
     resetScreen();
 #endif
 
@@ -383,8 +392,7 @@ void setup() {
 
 #ifdef ENABLE_7SD
     pinMode(pinSerialDisplayReset, OUTPUT);
-    display.begin();
-    resetSerialDisplay();
+    matrix.begin(0x70);
 #endif
 
 #ifdef ENABLE_CLOCK
@@ -406,6 +414,7 @@ void setup() {
 #ifdef ENABLE_NEOPIXEL
     neoPixelManager.begin();
 #endif
+    Serial.println("Setup finished, going into loop().");
 
 }
 
@@ -423,6 +432,5 @@ void loop() {
             t->lastCallMs = now;
         }
     }
-    delay(10);
+    delay(2);
 }
-

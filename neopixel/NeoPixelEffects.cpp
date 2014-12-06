@@ -25,9 +25,10 @@ NeoPixelEffects::NeoPixelEffects(Adafruit_NeoPixel *strip) {
 //        &NeoPixelEffects::colorWipeRed,
 //        &NeoPixelEffects::colorWipeBlue,
 //        &NeoPixelEffects::colorWipeGreen,
-        &NeoPixelEffects::theaterChaseYellow,
-        &NeoPixelEffects::theaterChaseRed,
-        &NeoPixelEffects::theaterChaseBlue,
+//        &NeoPixelEffects::theaterChaseYellow,
+//        &NeoPixelEffects::theaterChaseRed,
+//        &NeoPixelEffects::theaterChaseBlue,
+        &NeoPixelEffects::randomColor,
         &NeoPixelEffects::rainbow,
         &NeoPixelEffects::rainbowCycle,
         NULL
@@ -63,32 +64,42 @@ void NeoPixelEffects::refreshCurrentEffect() {
         (this->*((NeoPixelEffects*) this)->NeoPixelEffects::_currentEffect)();
     }
 }
-
-void NeoPixelEffects::colorWipeRed() {
-    colorWipe(_strip->Color(255, 0, 0)); // Red
+void NeoPixelEffects::randomColor() {
+    i++;
+    switch ((i / 20) % 4) {
+    case 0:
+        colorBlue();
+        break;
+    case 1:
+        colorRed();
+        break;
+    case 2:
+        colorGreen();
+        break;
+    case 3:
+        colorYellow();
+        break;
+    }
 }
-void NeoPixelEffects::colorWipeBlue() {
-    colorWipe(_strip->Color(0, 0, 255)); // Blue
+void NeoPixelEffects::colorRed() {
+    colorWipe(_strip->Color(127, 0, 0)); // Red
 }
-void NeoPixelEffects::colorWipeGreen() {
-    colorWipe(_strip->Color(0, 255, 255)); // Blue
+void NeoPixelEffects::colorBlue() {
+    colorWipe(_strip->Color(0, 0, 127)); // Blue
 }
-void NeoPixelEffects::theaterChaseYellow() {
-    theaterChase(_strip->Color(127, 127, 0));
+void NeoPixelEffects::colorGreen() {
+    colorWipe(_strip->Color(0, 127, 0)); // Blue
 }
-void NeoPixelEffects::theaterChaseRed() {
-    theaterChase(_strip->Color(127, 0, 0)); // Red
-}
-void NeoPixelEffects::theaterChaseBlue() {
-    theaterChase(_strip->Color(0, 0, 127)); // Blue
+void NeoPixelEffects::colorYellow() {
+    colorWipe(_strip->Color(127, 127, 0)); // Yellow
 }
 
 // Fill the dots one after the other with a color
 void NeoPixelEffects::colorWipe(uint32_t c) {
-    _strip->setPixelColor(i, c);
+    for (int p = 0; p < _strip->numPixels(); p++) {
+        _strip->setPixelColor(p, c);
+    }
     _strip->show();
-    i++;
-    i %= _strip->numPixels();
 }
 
 void NeoPixelEffects::rainbow() {
