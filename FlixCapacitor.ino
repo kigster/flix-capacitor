@@ -26,6 +26,18 @@
 Adafruit_7segment matrix = Adafruit_7segment();
 #endif
 
+namespace State {
+    typedef enum SystemMode_e {
+        Clock    = (1 << 0),
+        LightsOn = (1 << 1),
+        PhotosOn = (1 << 2),
+        MusicOn  = (1 << 3),
+        Last     = (1 << 4)
+    } SystemMode;
+};
+
+State::SystemMode state = State::Clock;
+
 // uncomment, then clean project, build and upload it to set the time to compile time.
 //#define SET_TIME_TO_COMPILE
 #ifdef SET_TIME_TO_COMPILE
@@ -53,14 +65,14 @@ FileSystem fileSystem((uint8_t) SD_CS);
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
 #endif
 
+periodicCall ScreenReset   = {   2000, screenReset,            false };
 periodicCall StatusTimer   = {  10002, status,                 true };
-periodicCall JoystickTimer = {    202, readJoystick,           true };
+periodicCall JoystickTimer = {     20, readJoystick,           true };
 
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
-periodicCall ImageTimer    = {   6003, autoPlayPhotos,         true};
+periodicCall ImageTimer    = {   6003, autoPlayPhotos,         false };
 #endif
 #ifdef ENABLE_AUDIO_SD
-periodicCall TrackTimer    = {  10001, autoPlayMusic,          false};
 periodicCall VolumeTimer   = {     48, adjustVolume,           true };
 #endif
 
@@ -69,21 +81,24 @@ periodicCall ClockTimer    = {   1000, showClock,              true };
 #endif
 
 #ifdef ENABLE_NEOPIXEL
-periodicCall NeoPixelShow  = {      5, neoPixelShow,           true };
+periodicCall NeoPixelShow  = {      5, neoPixelShow,           false };
 periodicCall NeoPixelNext  = {   5000, neoPixelNext,           true };
 #endif
+
+periodicCall ShutOffTimer  ={ 3600000, shutOff,                true };
 
 
 // don't forget to add a new timer to the array below!
 periodicCall *timers[] = {
-          &StatusTimer
+          &ScreenReset
+        , &StatusTimer
 		, &JoystickTimer
+		, &ShutOffTimer
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 		, &ImageTimer
 #endif
 #ifdef ENABLE_AUDIO_SD
         , &VolumeTimer
-        , &TrackTimer
 #endif
 #ifdef ENABLE_CLOCK
         , &ClockTimer
@@ -127,6 +142,30 @@ char photoPathName[FAT32_FILENAME_LENGTH * 2 + 2];
 FileList *photos;
 #endif
 
+void screenReset() {
+    ScreenReset.active = false;
+    resetScreen();
+}
+void activateTimer(periodicCall *timer, bool callNow) {
+    timer->active = true;
+    timer->lastCallMs = callNow ? 0 : millis() + timer->frequencyMs;
+}
+
+void shutOff() {
+    ImageTimer.active = false;
+    NeoPixelShow.active = false;
+    NeoPixelNext.active = false;
+
+    displayMessage((char *) "Stopping", "Auto Play...", 20, 100,
+            ILI9341_WHITE);
+
+    if (player.isPlaying())
+        player.stop();
+
+    neoPixelManager.shutoff();
+
+    activateTimer(&ScreenReset, false);
+}
 
 uint32_t FreeRamTeensy() { // for Teensy 3.0
     uint32_t stackTop;
@@ -144,29 +183,58 @@ uint32_t FreeRamTeensy() { // for Teensy 3.0
     return stackTop - heapTop;
 }
 
+void nextState() {
+    // disable any previous screen reset timers
+    ScreenReset.active = false;
+    state = (State::SystemMode) ((int) state << 1);
+    switch(state) {
+    case State::LightsOn:
+        if (!NeoPixelShow.active) {
+            neoPixelManager.begin();
+            NeoPixelShow.active = true;
+            NeoPixelNext.active = true;
+            displayMessage((char *)"Starting", (char *)"Lightshow!", 20, 100, ILI9341_WHITE);
+            activateTimer(&ScreenReset, false);
+        }
+        break;
+    case State::PhotosOn:
+        if (!ImageTimer.active) {
+            ImageTimer.active = true;
+            displayMessage((char *)"Starting", (char *)"PhotoShow!", 20, 100, ILI9341_WHITE);
+            delay(500);
+        }
+        break;
+
+    case State::MusicOn:
+        // keep current picture for full period
+        ImageTimer.lastCallMs = millis() + ImageTimer.frequencyMs;
+        VolumeTimer.active = true;
+        playRandomTrack();
+        break;
+    case State::Last:
+        state = State::Clock;
+        /* no break */
+    case State::Clock:
+        shutOff();
+    }
+}
+
 void readJoystick() {
     if (millis() - lastJoystickAction > JOYSTICK_BLOCKTIME_AFTER_ACTION_MS) {
         long actionStart = millis();
 		bool action = true;
 		bool pressed = joystick.buttonPressed();
 		if (pressed) {
-            #ifdef ENABLE_AUDIO_SD
-            Serial.println("Joystick Button Pressed!");
-			if (player.isPlaying()) {
-				player.stop();
-			} else {
-				playTrack(CURRENT);
-			}
-            #endif
+		    nextState();
 		} else if (joystick.yUp()) {
             #ifdef ENABLE_AUDIO_SD
-			 playTrack(NEXT);
+			playTrack(NEXT);
 		    Serial.println("Joystick UP");
             #endif
 		} else if (joystick.yDown()) {
             #ifdef ENABLE_AUDIO_SD
             Serial.println("Joystick DOWN");
-			playTrack(PREVIOUS);
+			if (player.isPlaying()) player.stop();
             #endif
 		} else if (joystick.xForward()) {
             #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
@@ -185,10 +253,10 @@ void readJoystick() {
 		}
 
         if (action
-                || (joystick.readY() > 0.72)
-                || (joystick.readY() < 0.69)
-                || (joystick.readX() > 0.75)
-                || (joystick.readX() < 0.72) ) {
+                || (joystick.readY() > 0.76)
+                || (joystick.readY() < 0.73)
+                || (joystick.readX() > 0.72)
+                || (joystick.readX() < 0.68) ) {
             //printv("Joystick Action Detected: X = ", joystick.readX());
             Serial.print(F("Joystick Action Detected: X = "));
             Serial.print(joystick.readX());
@@ -208,13 +276,21 @@ void status() {
 }
 
 #ifdef ENABLE_AUDIO_SD
-void autoPlayMusic() {
-    if (!player.isPlaying())
-        playTrack(NEXT);
-}
-
 void playTrack(direction direction) {
     playTrack(direction, 0);
+}
+
+void playRandomTrack() {
+    if (fileSystem.hasInitialized() && tracks != NULL && !player.isPlaying()) {
+        if (fileSystem.randomFileInList(tracks, trackPathName)) {
+            Serial.print(F("Starting to play a random track ")); Serial.print(trackPathName);
+            if (player.play(trackPathName)) {
+                Serial.println(F(", started OK!"));
+                displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
+                delay(500);
+            }
+        }
+    }
 }
 
 void playTrack(direction direction, int attempts) {
@@ -278,7 +354,7 @@ void autoPlayPhotos() {
 
 void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color) {
 #ifdef ENABLE_NEOPIXEL
-    displayMessageWindow(x, y, neoPixelManager.color(20, 20, 80));
+    displayMessageWindow(x, y, neoPixelManager.color(80,80,200));
 #else
     displayMessageWindow(x, y, ILI9341_WHITE);
 #endif
@@ -328,6 +404,7 @@ void showClock() {
     colonOn = !colonOn;
 #ifdef ENABLE_7SD
     int h = hour() % 12;
+    if (h == 0) h = 12;
     int m = minute();
     matrix.clear();
     if (h > 9)
@@ -372,7 +449,6 @@ void setup() {
     fileSystem.initSDCard();
     if (!fileSystem.hasInitialized()) {
     	ImageTimer.active = false;
-    	TrackTimer.active = false;
     } else {
         readSDCard();
     }
@@ -393,6 +469,7 @@ void setup() {
 #ifdef ENABLE_7SD
     pinMode(pinSerialDisplayReset, OUTPUT);
     matrix.begin(0x70);
+    matrix.setBrightness(2);
 #endif
 
 #ifdef ENABLE_CLOCK
@@ -414,6 +491,7 @@ void setup() {
 #ifdef ENABLE_NEOPIXEL
     neoPixelManager.begin();
 #endif
+
     Serial.println("Setup finished, going into loop().");
 
 }

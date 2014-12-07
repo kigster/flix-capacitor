@@ -50,7 +50,7 @@ void MusicPlayer::turnOn() {
         delay(100);
         sgtl5000.volume(_volume);
         sgtl5000.enhanceBassEnable();
-        sgtl5000.unmuteHeadphone();
+        sgtl5000.muteHeadphone();
         sgtl5000.unmuteLineout();
         _on = true;
     }
@@ -58,7 +58,6 @@ void MusicPlayer::turnOn() {
 
 void MusicPlayer::turnOff() {
     if (_on) {
-        sgtl5000.muteHeadphone();
         sgtl5000.muteLineout();
     }
 

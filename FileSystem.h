@@ -34,7 +34,7 @@ public:
 	bool hasInitialized();
 	FileList *findFilesMatchingExtension(char *folder, char *extension);
 	bool nextFileInList(FileList *fileList, char* fullPath, direction dir);
-
+	bool randomFileInList(FileList *fileList, char* fullPath);
 private:
 	void saveDirectory(FileList *fileList, File dir, int level, char *match);
 	bool sdCardInitialized;

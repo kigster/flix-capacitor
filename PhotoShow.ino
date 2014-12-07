@@ -10,11 +10,16 @@ File bmpFile;
 void resetScreen() {
     tft.fillScreen(tft.color565(0x20, 0x20, 0x20));
 
-    tft.setTextColor(ILI9341_WHITE);
-    tft.setTextSize(1);
+    tft.setTextColor(ILI9341_YELLOW);
+    tft.setTextSize(3);
 
-    tft.setCursor(1, 20);
-    tft.setTextWrap(true);
+    tft.setTextWrap(false);
+    tft.setCursor(20, 100);
+    tft.print("FilxCapacitor v1");
+    tft.setTextSize(1);
+    tft.setCursor(30, 140);
+    tft.setTextColor(ILI9341_WHITE);
+    tft.print("Made for Fil to aid in quick recovery :=) ");
 }
 
 void bmpDraw(char *filename, uint8_t x, uint16_t y) {

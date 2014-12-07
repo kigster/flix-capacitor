@@ -26,10 +26,10 @@ void Joystick::begin() {
 
 
 bool Joystick::xForward() {
-    return (1 - readX() < JOYSTICK_THRESHOLD) ? true : false;
+    return (readX() - JOYSTICK_X_BOUND < JOYSTICK_THRESHOLD) ? true : false;
 }
 bool Joystick::xBack() {
-    return (readX() - JOYSTICK_X_BOUND < JOYSTICK_THRESHOLD) ? true : false;
+    return (1 - readX() < JOYSTICK_THRESHOLD) ? true : false;
 }
 bool Joystick::yUp() {
     return (1 - readY() < JOYSTICK_THRESHOLD) ? true : false;

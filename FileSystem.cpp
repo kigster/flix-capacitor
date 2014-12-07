@@ -89,6 +89,15 @@ bool FileSystem::nextFileInList(FileList *fileList, char* fullPath, direction di
         return false;
 }
 
+bool FileSystem::randomFileInList(FileList *fileList, char* fullPath) {
+    if (fileList->size > 0) {
+        fileList->currentIndex = random(fileList->size);
+        sprintf(fullPath, "%s/%s", fileList->parentFolder, fileList->files[fileList->currentIndex]);
+        return true;
+    } else
+        return false;
+}
+
 void FileSystem::saveDirectory(FileList *fileList, File dir, int level, char *match) {
     printv("Opening directory ", dir.name());
     int files = 0;
@@ -136,7 +145,12 @@ void FileSystem::saveDirectory(FileList *fileList, File dir, int level, char *ma
 }
 
 FileList *FileSystem::findFilesMatchingExtension(char *folder, char *extension) {
-    FileList *fileList = (FileList *) malloc(sizeof(FileList));
+    FileList *fileList = new FileList;
+    if (fileList == NULL) {
+        Serial.println("Can not allocate RAM");
+        return fileList;
+    }
+
     fileList->parentFolder = folder;
     fileList->size = 0;
     fileList->currentIndex = 0;
