@@ -41,6 +41,7 @@ public:
     bool isPlaying();
     /* always between 0 and 1.0, it's automatically adjusted for maxVolume */
     float volume();
+    float maxVolume();
     bool setVolume(float volume);
     void setMaxVolume(float maxVolume);
     void setBassVolume(float volume);

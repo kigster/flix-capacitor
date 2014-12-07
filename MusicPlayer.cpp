@@ -129,7 +129,9 @@ void MusicPlayer::setMaxVolume(float volume) {
     if (volume <= 1.0 && volume >= 0)
         _maxVolume = volume;
 }
-
+float MusicPlayer::maxVolume() {
+    return _maxVolume;
+}
 float MusicPlayer::volume() {
     return _volume;
 }

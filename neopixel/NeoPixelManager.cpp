@@ -18,7 +18,7 @@ NeoPixelManager::NeoPixelManager(uint8_t pixels, uint8_t pin) {
 }
 
 uint32_t NeoPixelManager::color(uint8_t r, uint8_t g, uint8_t b) {
-    return _strip->Color(r,b,b);
+    return _strip->Color(r,g,b);
 }
 
 void NeoPixelManager::shutoff() {

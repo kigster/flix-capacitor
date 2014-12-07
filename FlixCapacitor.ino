@@ -31,7 +31,7 @@ namespace State {
         Clock    = (1 << 0),
         LightsOn = (1 << 1),
         PhotosOn = (1 << 2),
-        MusicOn  = (1 << 3),
+        SetTime  = (1 << 3),
         Last     = (1 << 4)
     } SystemMode;
 };
@@ -60,6 +60,7 @@ State::SystemMode state = State::Clock;
 FileSystem fileSystem((uint8_t) SD_CS);
 #endif
 
+time_t startTime;
 
 #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
@@ -111,7 +112,7 @@ periodicCall *timers[] = {
 
 periodicCall *executingTimer;
 
-long lastMillis = 0, lastJoystickAction = 0;
+long lastMillis = 0, lastJoystickAction = 0, lastVolumeDisplayRedraw = 0;
 bool ledOn = false, colonOn = false;
 char stringBuffer[30];
 
@@ -123,7 +124,7 @@ uint8_t pinNeoPixels = 2;
 uint8_t pinSerialDisplay = 4;
 uint8_t pinSerialDisplayReset = 3;
 
-char buf[80];
+char buf[256];
 
 Joystick joystick(pinX, pinY, pinButton);
 
@@ -150,14 +151,16 @@ void activateTimer(periodicCall *timer, bool callNow) {
     timer->active = true;
     timer->lastCallMs = callNow ? 0 : millis() + timer->frequencyMs;
 }
+void deactivateTimer(periodicCall *timer) {
+    timer->active = false;
+}
 
 void shutOff() {
     ImageTimer.active = false;
     NeoPixelShow.active = false;
     NeoPixelNext.active = false;
 
-    displayMessage((char *) "Stopping", "Auto Play...", 20, 100,
-            ILI9341_WHITE);
+    displayModeChange((char *) "Stopping", (char *) "Auto Play...");
 
     if (player.isPlaying())
         player.stop();
@@ -185,7 +188,8 @@ uint32_t FreeRamTeensy() { // for Teensy 3.0
 
 void nextState() {
     // disable any previous screen reset timers
-    ScreenReset.active = false;
+    deactivateTimer(&ScreenReset);
+
     state = (State::SystemMode) ((int) state << 1);
     switch(state) {
     case State::LightsOn:
@@ -193,23 +197,20 @@ void nextState() {
             neoPixelManager.begin();
             NeoPixelShow.active = true;
             NeoPixelNext.active = true;
-            displayMessage((char *)"Starting", (char *)"Lightshow!", 20, 100, ILI9341_WHITE);
+            displayModeChange((char *) "Coming up next:", (char *)"Pretty blinkies!");
             activateTimer(&ScreenReset, false);
         }
         break;
     case State::PhotosOn:
         if (!ImageTimer.active) {
             ImageTimer.active = true;
-            displayMessage((char *)"Starting", (char *)"PhotoShow!", 20, 100, ILI9341_WHITE);
+            displayModeChange((char *)"Coming up next:", (char *)"Photo slideshow!");
             delay(500);
         }
         break;
 
-    case State::MusicOn:
-        // keep current picture for full period
-        ImageTimer.lastCallMs = millis() + ImageTimer.frequencyMs;
-        VolumeTimer.active = true;
-        playRandomTrack();
+    case State::SetTime:
+        configureTime();
         break;
     case State::Last:
         state = State::Clock;
@@ -229,35 +230,30 @@ void readJoystick() {
 		} else if (joystick.yUp()) {
             #ifdef ENABLE_AUDIO_SD
 			playTrack(NEXT);
-		    Serial.println("Joystick UP");
+		    Serial.println(">> UP");
             #endif
 		} else if (joystick.yDown()) {
             #ifdef ENABLE_AUDIO_SD
-            Serial.println("Joystick DOWN");
+            Serial.println(">> DOWN");
 			if (player.isPlaying()) player.stop();
             #endif
 		} else if (joystick.xForward()) {
             #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 			ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
 			playImage(NEXT);
-			Serial.println("Joystick FORWARD");
+			Serial.println(">> FORWARD");
             #endif
 		} else if (joystick.xBack()) {
             #if defined(ENABLE_TFT) && defined(ENABLE_AUDIO_SD)
 			ImageTimer.lastCallMs = millis() + 3 * ImageTimer.frequencyMs;
 			playImage(PREVIOUS);
-			Serial.println("Joystick BACK");
+			Serial.println(">> BACK");
             #endif
 		} else {
 			action = false;
 		}
 
-        if (action
-                || (joystick.readY() > 0.76)
-                || (joystick.readY() < 0.73)
-                || (joystick.readX() > 0.72)
-                || (joystick.readX() < 0.68) ) {
-            //printv("Joystick Action Detected: X = ", joystick.readX());
+        if (action) {
             Serial.print(F("Joystick Action Detected: X = "));
             Serial.print(joystick.readX());
             Serial.print(F(", Y = "));
@@ -270,9 +266,19 @@ void readJoystick() {
 }
 
 void status() {
-    printv(F("Free HEAP RAM (Kb): "), 1.0 * FreeRamTeensy() / 1014);
-    sprintf(buf, "%d:%02d:%02d, %d/%d/%d",hour(), minute(), second(), month(), day(), year());
-    printv(F("Current time is: "), buf);
+    long uptime = now() - startTime;
+    sprintf(buf, "[%d:%02d:%02d, %d/%d/%d] Uptime: %d days, %d hours, %d minutes | Memory Free: %5.2fKb | State:%d Lights:%s Photos:%s Music:%s Effect:%d",
+            hour(), minute(), second(), month(), day(), year(),
+            uptime  / (60 * 60 * 24),
+            uptime / (60 * 60),
+            uptime / 60,
+            (double) 1.0 * FreeRamTeensy() / 1014.0,
+            (int) state,
+            NeoPixelShow.active ? "on" : "off",
+            ImageTimer.active ? "on" : "off",
+            player.isPlaying() ? "on" : "off",
+            (int) neoPixelManager.effects()->currentEffectIndex());
+    Serial.println(buf);
 }
 
 #ifdef ENABLE_AUDIO_SD
@@ -286,7 +292,8 @@ void playRandomTrack() {
             Serial.print(F("Starting to play a random track ")); Serial.print(trackPathName);
             if (player.play(trackPathName)) {
                 Serial.println(F(", started OK!"));
-                displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
+                displayNotice("Next Track:", trackPathName);
+                activateTimer(&ScreenReset, false);
                 delay(500);
             }
         }
@@ -299,12 +306,14 @@ void playTrack(direction direction, int attempts) {
         Serial.print(F("Starting to play next track ")); Serial.print(trackPathName);
         if (player.play(trackPathName)) {
             Serial.println(F(", started OK!"));
-            displayMessage((char *)"Next Track:", trackPathName, 20, 100, ILI9341_WHITE);
+            displayNotice("Next Track:", trackPathName);
+            activateTimer(&ScreenReset, false);
             delay(500);
         } else {
             if (attempts == 0) {
                Serial.println(F(", failed to start, trying one more time..."));
-               displayMessage((char *)"Can't open file :(", trackPathName, 20, 100, ILI9341_RED);
+               displayError("Can't open file :(", trackPathName);
+               activateTimer(&ScreenReset, false);
                playTrack(direction, attempts + 1);
             } else {
                 Serial.println(F(", failed to start"));
@@ -312,6 +321,8 @@ void playTrack(direction direction, int attempts) {
         }
     } else {
         Serial.println(F("SD Card not initialized, can't play track"));
+        displayError("Unable to read SD Card", trackPathName);
+        activateTimer(&ScreenReset, false);
     }
 }
 
@@ -342,6 +353,13 @@ void adjustVolume() {
     if (player.setVolume(vol)) {
         Serial.print(F("Changed volume to "));
         Serial.println(player.volume());
+        if (player.isPlaying() && lastVolumeDisplayRedraw - millis() > 500) {
+            sprintf(buf, "%.0f%%", 100.0 * player.volume() / player.maxVolume());
+            displayError("Volume:", buf);
+            if (!ImageTimer.active)
+                activateTimer(&ScreenReset, false);
+            lastVolumeDisplayRedraw = millis();
+        }
     }
 }
 #endif
@@ -352,12 +370,17 @@ void autoPlayPhotos() {
     playImage(NEXT);
 }
 
-void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color) {
-#ifdef ENABLE_NEOPIXEL
-    displayMessageWindow(x, y, neoPixelManager.color(80,80,200));
-#else
-    displayMessageWindow(x, y, ILI9341_WHITE);
-#endif
+void displayNotice(char * title, char * message) {
+    displayMessage(title, message, 20, 100, ILI9341_WHITE, tft.color565(0,  110,  160));
+}
+void displayModeChange(char * title, char * message) {
+    displayMessage(title, message, 20, 100, ILI9341_WHITE, tft.color565(20, 80,  160));
+}
+void displayError(char * title, char * message) {
+    displayMessage(title, message, 20, 100, ILI9341_WHITE, tft.color565(160, 60,  10));
+}
+void displayMessage(char *title, char *message, uint8_t x, uint8_t y, uint32_t color, uint32_t bgColor) {
+    displayMessageWindow(x, y, bgColor);
     displayMessageWithShadow(title, message, x, y, color, 0);
 }
 
@@ -383,6 +406,7 @@ void displayMessageWindow(uint8_t x, uint8_t y, uint32_t color) {
 
 
 void playImage(direction direction) {
+    deactivateTimer(&ScreenReset);
     if (fileSystem.hasInitialized() && photos != NULL) {
         fileSystem.nextFileInList(photos, photoPathName, direction);
         Serial.print(F("Starting to play next photo")); Serial.println(photoPathName);
@@ -400,12 +424,12 @@ time_t getTeensy3Time() {
     return Teensy3Clock.get();
 }
 
-void showClock() {
+void displayTime(uint8_t hour, uint8_t minute) {
     colonOn = !colonOn;
 #ifdef ENABLE_7SD
-    int h = hour() % 12;
+    int h = hour % 12;
     if (h == 0) h = 12;
-    int m = minute();
+    int m = minute;
     matrix.clear();
     if (h > 9)
         matrix.writeDigitNum(0, h / 10, false);
@@ -419,6 +443,10 @@ void showClock() {
 #endif
 }
 
+void showClock() {
+    displayTime(hour(), minute());
+}
+
 #endif
 
 #ifdef ENABLE_NEOPIXEL
@@ -427,7 +455,6 @@ void neoPixelShow() {
 }
 void neoPixelNext() {
     neoPixelManager.nextEffect();
-    printv("Next effect # is ",  neoPixelManager.effects()->currentEffectIndex());
 }
 #endif
 /*__________________________________________________________________________________________*/
@@ -493,7 +520,7 @@ void setup() {
 #endif
 
     Serial.println("Setup finished, going into loop().");
-
+    startTime = now();
 }
 
 void loop() {

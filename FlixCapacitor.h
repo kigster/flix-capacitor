@@ -3,7 +3,7 @@
 #include <Arduino.h>
 // 8 for filename, 1 for ".", 3 for extension, 1 for \0
 #define FAT32_FILENAME_LENGTH 13
-
+typedef void(*displayUpdateCallback)(void);
 typedef void (*timerCallback)(void);
 
 typedef struct periodicCallStruct {
