@@ -4,7 +4,7 @@ A little flux/filx capacitor box based on Teensy 3.1 for showing pictures, clock
 
 <img src="doc/front-view.jpg" alt="" title="" height="300" border="1" align="right">
 
-## Functionality
+### Functionality
 
 It's a clock (on the left side) using Adafruit 7 Segment display, with a separate switch on the back that turns on Amp + LED display. 
 
