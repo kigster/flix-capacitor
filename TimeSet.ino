@@ -12,7 +12,6 @@ typedef enum TimeChangeMode_e {
 }
 ;
 
-
 SetTime::TimeMode mode = SetTime::Default;
 uint8_t h, m, brightness;
 
@@ -103,7 +102,8 @@ void updateTimeCallback() {
 
 void updateBrigthnessCallback() {
     matrix.setBrightness(brightness);
-    printv(F("Brightness value [0-15] set to "), brightness);
+    Serial.print("Brightness value [0-15] set to ");
+    Serial.println(brightness);
 }
 
 void selectNumber(uint8_t *current, int min, int max, displayUpdateCallback callback) {

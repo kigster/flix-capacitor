@@ -36,7 +36,7 @@ namespace State {
     } SystemMode;
 };
 
-State::SystemMode state = State::Clock;
+State::SystemMode mode = State::Clock;
 
 // uncomment, then clean project, build and upload it to set the time to compile time.
 //#define SET_TIME_TO_COMPILE
@@ -170,28 +170,12 @@ void shutOff() {
     activateTimer(&ScreenReset, false);
 }
 
-uint32_t FreeRamTeensy() { // for Teensy 3.0
-    uint32_t stackTop;
-    uint32_t heapTop;
-
-    // current position of the stack.
-    stackTop = (uint32_t) &stackTop;
-
-    // current position of heap.
-    void* hTop = malloc(1);
-    heapTop = (uint32_t) hTop;
-    free(hTop);
-
-    // The difference is the free, available ram.
-    return stackTop - heapTop;
-}
-
 void nextState() {
     // disable any previous screen reset timers
     deactivateTimer(&ScreenReset);
 
-    state = (State::SystemMode) ((int) state << 1);
-    switch(state) {
+    mode = (State::SystemMode) ((int) mode << 1);
+    switch(mode) {
     case State::LightsOn:
         if (!NeoPixelShow.active) {
             neoPixelManager.begin();
@@ -213,7 +197,7 @@ void nextState() {
         configureTime();
         break;
     case State::Last:
-        state = State::Clock;
+        mode = State::Clock;
         /* no break */
     case State::Clock:
         shutOff();
@@ -273,7 +257,7 @@ void status() {
             uptime / (60 * 60),
             uptime / 60,
             (double) 1.0 * FreeRamTeensy() / 1014.0,
-            (int) state,
+            (int) mode,
             NeoPixelShow.active ? "on" : "off",
             ImageTimer.active ? "on" : "off",
             player.isPlaying() ? "on" : "off",
